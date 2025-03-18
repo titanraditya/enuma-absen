@@ -1,0 +1,58 @@
+<?php
+
+namespace App\Database\Migrations;
+
+use CodeIgniter\Database\Migration;
+
+class CreateScheduleTable extends Migration
+{
+    public function up()
+    {
+        $this->forge->addField([
+            'id' => [
+                'type'           => 'INT',
+                'constraint'     => 11,
+                'unsigned'       => true,
+                'auto_increment' => true,
+            ],
+            'category_id' => [
+                'type'          => 'CHAR',
+                'constraint'    => 20,
+            ],
+            'day' => [
+                'type'          => 'ENUM',
+                'constraint'    => ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'],
+                'default'       => 'Monday',
+            ],
+            'no_limit' => [
+                'type'          => 'TINYINT',
+                'constraint'    => 1,
+                'unsigned'      => true,
+            ],
+            'start_time' => [
+                'type' => 'TIME',
+                'null' => true,
+            ],
+            'end_time' => [
+                'type' => 'TIME',
+                'null' => true,
+            ],
+            'created_at' => [
+                'type' => 'DATETIME',
+                'null' => true,
+            ],
+            'updated_at' => [
+                'type' => 'DATETIME',
+                'null' => true,
+            ],
+        ]);
+        $this->forge->addKey('id', true);
+        $this->forge->addForeignKey('category_id', 'categories', 'id', 'CASCADE','CASCADE');
+        $this->forge->createTable('schedules');
+    }
+
+    public function down()
+    {
+        $this->forge->dropTable('schedules');
+    }
+}

@@ -1,0 +1,368 @@
+<?php $this->extend('layout/main_layout'); ?>
+
+<?php $this->section('css'); ?>
+    <link rel="stylesheet" href="<?=base_url()?>assets/plugins/datatables-bs4/css/dataTables.bootstrap4.min.css">
+    <!-- <link rel="stylesheet" href="<?=base_url()?>assets/plugins/datatables/responsive.bootstrap4.css"/> -->
+    <link rel="stylesheet" href="<?=base_url()?>assets/plugins/sweetalert2/sweetalert2.min.css">
+<?php $this->endSection(); ?>
+
+<?php $this->section('action-button'); ?>
+   
+<?php $this->endSection(); ?>
+
+<?php $this->section('content'); ?>
+    <div class="row">
+        <div class="col-md-6 col-12">
+            <div class="card">
+                <div class="card-body row">
+                    <div class="col-6">
+                        <h5>Status Kehadiran Hari Ini</h5>
+                        <?php if(!$attendancecount) { ?>
+                            <h4 class="text-bold text-danger">Tidak Hadir</h4>
+                        <?php } else { ?>
+                            <h4 class="text-bold <?php if($attendancecount['status_today']=='Hadir') { echo "text-success";} else if ($attendancecount['status_today']=='Ijin') {echo "text-info";} else {echo "text-danger";}?>"><?=esc($attendancecount['status_today'])?></h4>
+                        <?php } ?>
+                    </div>
+                    <div class="col-6">
+                        <button onclick="logModal();" class="btn btn-success btn-lg mt-1"><i class="fas fa-pen"></i> Tulis log hari ini</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6 col-12">
+            <div class="card">
+                <div class="card-body row">
+                    <div class="col-6">
+                        <h5>Total Kehadiran</h5>
+                        <h4 class="text-bold"><?php if($attendancecount) { echo esc($attendancecount['count_hadir']); } else { echo '0';}?></h4>
+                    </div>
+                    <div class="col-6">
+                        <h5>Total Izin</h5>
+                        <h4 class="text-bold"><?php if($attendancecount) { echo esc($attendancecount['count_ijin']); } else { echo '0';}?></h4>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-lightblue">
+                    <h2 class="card-title">Kehadiran dan Laporan Anggota</h2>
+                </div>
+                <div class="card-body">
+                    <div class="card card-body">
+                        <div class="row">
+                            <div class="col-xl-3 col-4">
+                                <div class="form-group">
+                                    <label>Dari</label>
+                                    <input type="date" class="form-control" id="start_date" onchange="pilih_custom()">
+                                </div>
+                            </div>
+                            <div class="col-xl-3 col-4">
+                                <div class="form-group">
+                                    <label>Sampai</label>
+                                    <input type="date" class="form-control" id="end_date" onchange="pilih_custom()">
+                                </div>
+                            </div>
+                            <div class="col-xl-3 col-4">
+                                <div class="form-group">
+                                    <label>Filter</label>
+                                    <select class="form-control" id="filter" onchange="filter()">
+                                        <option value="all">Semua</option>
+                                        <option value="7">7 Hari Terakhir</option>
+                                        <option value="30">30 Hari Terakhir</option>
+                                        <option value="thismonth">Bulan Ini</option>
+                                        <option value="lastmonth">Bulan Kemarin</option>
+                                        <option value="custom">Kustom</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-xl-3 col-12">
+                                <label>&nbsp;</label><br>
+                                <form action="<?=base_url()?>attendance/print" method="POST" id="print_form" target="_blank">
+                                    <input type="hidden" name="id" value="<?=esc($user['id'])?>">
+                                    <input type="hidden" name="min" id="min">
+                                    <input type="hidden" name="max" id="max">
+                                </form>
+                                <button class='btn btn-secondary' onclick="printpdf()"><i class="fas fa-file-pdf"></i> Print PDF</button>
+                                <button class='btn btn-success' onclick="printexcel()"><i class="fas fa-file-excel"></i> Print Excel</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="table-responsive">
+                        <table id="tabel-absensi" class='table table-bordered'>
+                            <thead>
+                                <tr>
+                                    <th width="100px">Tanggal</th>
+                                    <th width="100px">Status</th>
+                                    <th width="200px">Waktu</th>
+                                    <th width="150px">Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+<?php $this->endSection(); ?>
+
+<?php $this->section('modal'); ?>
+<div class="modal fade" id="logModal">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="overlay" id="overlaylog">
+            <i class="fas fa-2x fa-sync fa-spin"></i>
+        </div>
+        <div class="modal-header">
+          <h4 class="modal-title">Tulis Log</h4>
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+        <div class="modal-body">
+            <div id='form_log'>
+            <form method="post" action="<?=base_url()?>log" id="form-log">
+                <?=csrf_field();?>
+                <div class="form-group">
+                    <label>Aktifitas</label>
+                    <input type="text" id="activity_text" name="activity" class="form-control">
+                    <label>Deskripsi</label>
+                    <textarea id="description_text" name="description" class="form-control"></textarea>
+                </div>
+            </form>
+          </div>
+          <div id='error_log'>
+            <p id="error_msg" class="text-center"></p>
+          </div>
+        </div>
+        <div class="modal-footer justify-content-between">
+          <button type="button" class="btn btn-default" data-dismiss="modal">Batal</button>
+          <button type="button" class="btn btn-info" id="btn-submit" onclick="logSubmit()">Simpan</button>
+        </div>
+      </div>
+    </div>
+  </div>
+<div class="modal fade" id="showLogModal">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="overlay" id="overlayshowlog">
+            <i class="fas fa-2x fa-sync fa-spin"></i>
+        </div>
+        <div class="modal-header">
+          <h4 class="modal-title" id="title-ijin">Detail Log</h4>
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+        <div class="modal-body">
+            <div id='detail_log'>
+                <table>
+                    <tr>
+                        <th width="100px">Tanggal</th>
+                        <td> : </td>
+                        <td id="date-text"></td>
+                    </tr>
+                    <tr>
+                        <th>Aktifitas</th>
+                        <td> : </td>
+                        <td id="activity-text"></td>
+                    </tr>
+                    <tr>
+                        <th>Deskripsi</th>
+                        <td> : </td>
+                        <td id="description-text"></td>
+                    </tr>
+                </table>
+            </div>
+            <div id='error_log'>
+                <p id="error_msg" class="text-center"></p>
+            </div>
+        </div>
+        <div class="modal-footer justify-content-between">
+          <button type="button" class="btn btn-default" data-dismiss="modal">Oke</button>
+        </div>
+      </div>
+    </div>
+  </div>
+<?php $this->endSection(); ?>
+
+<?php $this->section('js'); ?>
+    <script src="<?=base_url()?>assets/plugins/datatables/jquery.dataTables.min.js"></script>
+    <script src="<?=base_url()?>assets/plugins/datatables-bs4/js/dataTables.bootstrap4.min.js"></script>
+    <script src="<?=base_url()?>assets/plugins/sweetalert2/sweetalert2.min.js"></script>
+    <script>
+        function printexcel() {
+            $('#print_form').attr('action', '<?= base_url()?>attendance/printxls');
+            document.getElementById('print_form').submit();
+        }
+
+        function printpdf() {
+            $('#print_form').attr('action', '<?= base_url()?>attendance/printpdf');
+            document.getElementById('print_form').submit();
+        }
+
+        function showLog(id) {
+            $('#overlayshowlog').show();
+            $('#showLogModal').modal();
+            $.ajax({
+                url: "<?=base_url()?>/log/getdata/"+id,
+                type: "GET",
+                dataType: "json",
+                success: function(response) {
+                    $('#error_log').hide();
+                    $('#detail_log').show();
+                    $('#date-text').html(response.date);
+                    $('#activity-text').html(response.activity);
+                    $('#description-text').html(response.description);
+                    $('#btn-submit').show();
+                    $('#overlayshowlog').hide();
+                },
+                error: function(xhr, status, error) {
+                    $('#error_msg').html('Something wrong with server');
+                    $('#error_log').show();
+                    $('#detail_log').hide();
+                    $('#btn-submit').hide();
+                    $('#overlayshowlog').hide();
+                }
+            });
+        }
+
+        var Toast = Swal.mixin({
+        toast: true,
+        position: 'top-end',
+        showConfirmButton: false,
+        timer: 3000
+        });
+
+        <?php if(session()->getFlashdata('error')): ?>
+        Toast.fire({
+            icon: 'error',
+            title: '<?=esc(session()->getFlashdata('error'))?>'
+        })
+        <?php endif; ?>
+
+        <?php if(session()->getFlashdata('success')): ?>
+        Toast.fire({
+            icon: 'success',
+            title: '<?=esc(session()->getFlashdata('success'))?>'
+        })
+        <?php endif; ?>
+
+        function logSubmit()
+        {
+            document.getElementById('form-log').submit();
+        }
+
+
+        function logModal() {
+            $('#overlaylog').show();
+            $('#logModal').modal();
+            $.ajax({
+                url: "<?=base_url()?>/log/getdata",
+                type: "GET",
+                dataType: "json",
+                success: function(response) {
+                    if(response.status == 'success') {
+                        $('#error_log').hide();
+                        $('#form_log').show();
+                        $('#activity_text').val(response.activity);
+                        $('#description_text').html(response.description);
+                        $('#btn-submit').show();
+                        $('#overlaylog').hide();
+                    } else {
+                        $('#error_msg').html(response.message);
+                        $('#error_log').show();
+                        $('#form_log').hide();
+                        $('#btn-submit').hide();
+                        $('#overlaylog').hide();
+                    }
+                },
+                error: function(xhr, status, error) {
+                    $('#error_msg').html('Something wrong with server');
+                    $('#error_log').show();
+                    $('#form_log').hide();
+                    $('#btn-submit').hide();
+                    $('#overlaylog').hide();
+                }
+            });
+        }
+
+        function filter()
+        {
+            input = $('#filter').val();
+            var tgl_awal = new Date();
+            var tgl_akhir = new Date();
+            if(input == 'all') {
+                document.getElementById('start_date').valueAsDate = null;
+                document.getElementById('end_date').valueAsDate = null;
+                document.getElementById('min').value = null;
+                document.getElementById('max').value = null;
+                $('#tabel-absensi').DataTable().ajax.url("<?= base_url()?>attendance/data/<?=esc($user['id'])?>/all").load();
+            } else if(input == '7') {
+                tgl_awal.setDate(tgl_awal.getDate()-7);
+                document.getElementById('start_date').valueAsDate = tgl_awal;
+                document.getElementById('end_date').valueAsDate = tgl_akhir;
+                document.getElementById('min').value = tgl_awal.toISOString().split('T')[0];
+                document.getElementById('max').value = tgl_akhir.toISOString().split('T')[0];
+                $('#tabel-absensi').DataTable().ajax.url("<?= base_url()?>attendance/data/<?=esc($user['id'])?>/"+tgl_awal.toISOString().split('T')[0]+':'+tgl_akhir.toISOString().split('T')[0]).load();
+            } else if(input == '30') {
+                tgl_awal.setDate(tgl_awal.getDate()-30);
+                document.getElementById('start_date').valueAsDate = tgl_awal;
+                document.getElementById('end_date').valueAsDate = tgl_akhir;
+                document.getElementById('min').value = tgl_awal.toISOString().split('T')[0];
+                document.getElementById('max').value = tgl_akhir.toISOString().split('T')[0];
+                $('#tabel-absensi').DataTable().ajax.url("<?= base_url()?>attendance/data/<?=esc($user['id'])?>/"+tgl_awal.toISOString().split('T')[0]+':'+tgl_akhir.toISOString().split('T')[0]).load();
+            } else if(input == 'thismonth') {
+                tgl_awal.setDate(1);
+                document.getElementById('start_date').valueAsDate = tgl_awal;
+                document.getElementById('end_date').valueAsDate = tgl_akhir;
+                document.getElementById('min').value = tgl_awal.toISOString().split('T')[0];
+                document.getElementById('max').value = tgl_akhir.toISOString().split('T')[0];
+                $('#tabel-absensi').DataTable().ajax.url("<?= base_url()?>attendance/data/<?=esc($user['id'])?>/"+tgl_awal.toISOString().split('T')[0]+':'+tgl_akhir.toISOString().split('T')[0]).load();
+            } else if(input == 'lastmonth') {
+                tgl_awal.setDate(1);
+                tgl_awal.setMonth(tgl_awal.getMonth()-1);
+                tgl_akhir.setDate(0);
+                document.getElementById('start_date').valueAsDate = tgl_awal;
+                document.getElementById('end_date').valueAsDate = tgl_akhir;
+                document.getElementById('min').value = tgl_awal.toISOString().split('T')[0];
+                document.getElementById('max').value = tgl_akhir.toISOString().split('T')[0];   
+                $('#tabel-absensi').DataTable().ajax.url("<?= base_url()?>attendance/data/<?=esc($user['id'])?>/"+tgl_awal.toISOString().split('T')[0]+':'+tgl_akhir.toISOString().split('T')[0]).load();
+            }
+        }
+
+        function pilih_custom() {
+            document.getElementById('filter').value = 'custom';
+            start_date = document.getElementById('start_date').value;
+            end_date = document.getElementById('end_date').value;
+            document.getElementById('min').value = start_date;
+            document.getElementById('max').value = end_date;
+            $('#tabel-absensi').DataTable().ajax.url("<?= base_url()?>attendance/data/<?=esc($user['id'])?>/"+start_date+':'+end_date).load();
+        }
+
+        $(document).ready(function() {
+            $('#tabel-absensi').DataTable({
+                processing: true,
+                order: [[0, 'desc']],
+                searching: false,
+                ajax: {
+                    url: '<?= base_url()?>attendance/data/<?=esc($user['id'])?>/all',
+                    dataSrc: ''
+                },
+                columns: [
+                    {data:'tanggal'},
+                    {data:'status'},
+                    {data:'waktu'},
+                    {data:'id',
+                       render: function (data, type, row, meta) {
+                            return '<a class="btn btn-sm btn-info text-white" onClick="showLog('+"'"+data+"'"+')"><i class="fas fa-pen"></i> Lihat Log</a>';
+                        }   
+                    },
+                ],
+            });
+        });
+    </script>
+<?php $this->endSection(); ?>
