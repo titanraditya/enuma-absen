@@ -20,6 +20,19 @@ class Api extends BaseController
         $this->attendanceModel = new AttendanceModel();
     }
 
+    public function user($id): ResponseInterface
+    {
+        $user = $this->userModel
+            ->select('users.id as id, users.id_fingerprint as id_fingerprint, users.name as name, categories.name as category_name')
+            ->join('categories', 'categories.id = users.category_id')
+            ->where('users.id_fingerprint', $id)
+            ->first();
+        $data = [
+            'users' => $user
+        ];
+        return response()->setJSON($data);
+    }
+
     public function storeAttendance()
     {
         try {

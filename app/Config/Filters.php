@@ -5,6 +5,7 @@ namespace Config;
 use App\Filters\AuthFilter;
 use App\Filters\AdminFilter;
 use App\Filters\LoginFilter;
+use App\Filters\IoTAuth;
 use App\Filters\UserPengawasFilter;
 use App\Filters\AdminPengawasFilter;
 use CodeIgniter\Config\Filters as BaseFilters;
@@ -42,6 +43,7 @@ class Filters extends BaseFilters
         'auth'          => AuthFilter::class,
         'admin'         => AdminFilter::class,
         'login'         => LoginFilter::class,
+        'iotAuth'       => IoTAuth::class,
         'user-pengawas' => UserPengawasFilter::class,
         'admin-pengawas' => AdminPengawasFilter::class,
     ];

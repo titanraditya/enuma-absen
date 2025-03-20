@@ -2,7 +2,7 @@
 
 <?php $this->section('content'); ?>
     <div class="row">
-        <div class="col-lg-3 col-md-6 col-6 mb-2 order-lg-1 order-2">
+        <div class="col-lg-3 col-md-6 col-12 mb-2 order-lg-1 order-2">
             <div class="info-box h-100">
                 
 
@@ -15,7 +15,7 @@
                 </div>
             </div>
         </div>
-        <div class="col-lg-3 col-md-6 col-6 mb-2 order-lg-2 order-3">
+        <div class="col-lg-3 col-md-12 col-6 mb-2 order-lg-2 order-3">
             <div class="info-box h-100">
                 <span class="info-box-icon bg-info elevation-1"
                 ><i class="fas fa-list"></i

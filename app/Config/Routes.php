@@ -72,4 +72,5 @@ $routes->group('admin', ['filter' => 'admin'], function($routes) {
 });
 
 //API
-$routes->post('/api/attendance', 'Api::storeAttendance');
+$routes->get('/api/users/(:num)', 'Api::user/$1', ['filter' => 'iotAuth']);
+$routes->post('/api/attendance', 'Api::storeAttendance', ['filter' =>'iotAuth']);
