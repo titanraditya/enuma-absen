@@ -96,14 +96,7 @@
                             </div>
                             <div class="col-xl-3 col-12">
                                 <label>&nbsp;</label><br>
-                                <!-- <form action="<?=base_url()?>attendance/print" method="POST" id="print_form" target="_blank">
-                                    <input type="hidden" name="id" value="<?=esc($user['id'])?>">
-                                    <input type="hidden" name="min" id="min">
-                                    <input type="hidden" name="max" id="max">
-                                </form> -->
                                 <button class='btn btn-secondary' onclick="printModal()"><i class="fas fa-print"></i> Print</button>
-                                <!-- <button class='btn btn-secondary' onclick="printpdf()"><i class="fas fa-file-pdf"></i> Print PDF</button>
-                                <button class='btn btn-success' onclick="printexcel()"><i class="fas fa-file-excel"></i> Print Excel</button> -->
                             </div>
                         </div>
                     </div>

@@ -78,14 +78,7 @@
                             </div>
                             <div class="col-xl-3 col-12">
                                 <label>&nbsp;</label><br>
-                                <form action="<?=base_url()?>attendance/print" method="POST" id="print_form" target="_blank">
-                                    <input type="hidden" name="id" value="<?=esc($user['id'])?>">
-                                    <input type="hidden" name="min" id="min">
-                                    <input type="hidden" name="max" id="max">
-                                </form>
-                                <button class='btn btn-secondary' onclick="printpdf()"><i class="fas fa-file-pdf"></i> Print PDF</button>
-                                <button class='btn btn-success' onclick="printexcel()"><i class="fas fa-file-excel"></i> Print Excel</button>
-                            </div>
+                                <button class='btn btn-secondary' onclick="printModal()"><i class="fas fa-print"></i> Print</button>
                         </div>
                     </div>
                     <div class="table-responsive">
@@ -187,6 +180,57 @@
       </div>
     </div>
   </div>
+  <div class="modal fade" id="printModal">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h4 class="modal-title" id="title-ijin"><i class="fas fa-print"></i> Pengaturan Cetak</h4>
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+        <div class="modal-body">
+          <form action="" method="POST" id="print_form" target="_blank">
+            <input type="hidden" name="id" value="<?=esc($user['id'])?>">
+            <input type="hidden" name="min" id="min">
+            <input type="hidden" name="max" id="max">
+            <div class="form-group">
+                <label>Filter</label>
+                <p id="filter-text">Semua</p>
+            </div>
+            <div class="form-group">
+                <label>Urutkan data dari</label>
+                <select name="order_by" class="form-control">
+                    <option value="1">Tanggal - ASC</option>
+                    <option value="2">Tanggal - DESC</option>
+                    <option value="4">Status - ASC</option>
+                    <option value="4">Status - DESC</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Data yang ditampilkan</label>
+                <select name="data_show" class="form-control">
+                    <option value="1">Absensi dan Log</option>
+                    <option value="2">Absensi</option>
+                    <option value="3">Log</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Format</label>
+                <select name="format" class="form-control" id="format_print">
+                    <option value="pdf">Pdf</option>
+                    <option value="xls">Excel</option>
+                </select>
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer justify-content-between">
+          <button type="button" class="btn btn-default" data-dismiss="modal">Batal</button>
+          <button type="button" onclick="print()" class="btn btn-info">Ya</button>
+        </div>
+      </div>
+    </div>
+  </div>
 <?php $this->endSection(); ?>
 
 <?php $this->section('js'); ?>
@@ -194,14 +238,19 @@
     <script src="<?=base_url()?>assets/plugins/datatables-bs4/js/dataTables.bootstrap4.min.js"></script>
     <script src="<?=base_url()?>assets/plugins/sweetalert2/sweetalert2.min.js"></script>
     <script>
-        function printexcel() {
-            $('#print_form').attr('action', '<?= base_url()?>attendance/printxls');
-            document.getElementById('print_form').submit();
+        function printModal() {
+            $('#printModal').modal();
         }
 
-        function printpdf() {
-            $('#print_form').attr('action', '<?= base_url()?>attendance/printpdf');
-            document.getElementById('print_form').submit();
+        function print() {
+            format = $('#format_print').val()
+            if (format == 'xls') {
+                $('#print_form').attr('action', '<?= base_url()?>attendance/printxls');
+                document.getElementById('print_form').submit();
+            } else {
+                $('#print_form').attr('action', '<?= base_url()?>attendance/printpdf');
+                document.getElementById('print_form').submit();
+            }
         }
 
         function showLog(id) {
@@ -300,6 +349,7 @@
                 document.getElementById('end_date').valueAsDate = null;
                 document.getElementById('min').value = null;
                 document.getElementById('max').value = null;
+                document.getElementById('filter-text').innerHTML = 'Semua';
                 $('#tabel-absensi').DataTable().ajax.url("<?= base_url()?>attendance/data/<?=esc($user['id'])?>/all").load();
             } else if(input == '7') {
                 tgl_awal.setDate(tgl_awal.getDate()-7);
@@ -307,6 +357,7 @@
                 document.getElementById('end_date').valueAsDate = tgl_akhir;
                 document.getElementById('min').value = tgl_awal.toISOString().split('T')[0];
                 document.getElementById('max').value = tgl_akhir.toISOString().split('T')[0];
+                document.getElementById('filter-text').innerHTML = '7 Hari Terakhir <br>( '+tgl_awal.toISOString().split('T')[0]+' sd '+tgl_akhir.toISOString().split('T')[0]+' )';
                 $('#tabel-absensi').DataTable().ajax.url("<?= base_url()?>attendance/data/<?=esc($user['id'])?>/"+tgl_awal.toISOString().split('T')[0]+':'+tgl_akhir.toISOString().split('T')[0]).load();
             } else if(input == '30') {
                 tgl_awal.setDate(tgl_awal.getDate()-30);
@@ -314,6 +365,7 @@
                 document.getElementById('end_date').valueAsDate = tgl_akhir;
                 document.getElementById('min').value = tgl_awal.toISOString().split('T')[0];
                 document.getElementById('max').value = tgl_akhir.toISOString().split('T')[0];
+                document.getElementById('filter-text').innerHTML = '30 Hari Terakhir <br>( '+tgl_awal.toISOString().split('T')[0]+' sd '+tgl_akhir.toISOString().split('T')[0]+' )';
                 $('#tabel-absensi').DataTable().ajax.url("<?= base_url()?>attendance/data/<?=esc($user['id'])?>/"+tgl_awal.toISOString().split('T')[0]+':'+tgl_akhir.toISOString().split('T')[0]).load();
             } else if(input == 'thismonth') {
                 tgl_awal.setDate(1);
@@ -321,6 +373,7 @@
                 document.getElementById('end_date').valueAsDate = tgl_akhir;
                 document.getElementById('min').value = tgl_awal.toISOString().split('T')[0];
                 document.getElementById('max').value = tgl_akhir.toISOString().split('T')[0];
+                document.getElementById('filter-text').innerHTML = 'Bulan Ini <br>( '+tgl_awal.toISOString().split('T')[0]+' sd '+tgl_akhir.toISOString().split('T')[0]+' )';
                 $('#tabel-absensi').DataTable().ajax.url("<?= base_url()?>attendance/data/<?=esc($user['id'])?>/"+tgl_awal.toISOString().split('T')[0]+':'+tgl_akhir.toISOString().split('T')[0]).load();
             } else if(input == 'lastmonth') {
                 tgl_awal.setDate(1);
@@ -330,6 +383,7 @@
                 document.getElementById('end_date').valueAsDate = tgl_akhir;
                 document.getElementById('min').value = tgl_awal.toISOString().split('T')[0];
                 document.getElementById('max').value = tgl_akhir.toISOString().split('T')[0];   
+                document.getElementById('filter-text').innerHTML = 'Bulan Kemarin <br>( '+tgl_awal.toISOString().split('T')[0]+' sd '+tgl_akhir.toISOString().split('T')[0]+' )';
                 $('#tabel-absensi').DataTable().ajax.url("<?= base_url()?>attendance/data/<?=esc($user['id'])?>/"+tgl_awal.toISOString().split('T')[0]+':'+tgl_akhir.toISOString().split('T')[0]).load();
             }
         }
@@ -340,6 +394,12 @@
             end_date = document.getElementById('end_date').value;
             document.getElementById('min').value = start_date;
             document.getElementById('max').value = end_date;
+            if (start_date=='') {
+                start_date = 'awal'
+            }if (end_date=='') {
+                end_date = 'sekarang'
+            }
+            document.getElementById('filter-text').innerHTML = 'Kustom <br>( '+start_date+' sd. '+end_date+' )';
             $('#tabel-absensi').DataTable().ajax.url("<?= base_url()?>attendance/data/<?=esc($user['id'])?>/"+start_date+':'+end_date).load();
         }
 

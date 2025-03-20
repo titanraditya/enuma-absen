@@ -2,7 +2,7 @@
 <html>
     <head>
         <meta charset="utf-8">
-        <title>Laporan Absensi - <?=$user['name']?></title>
+        <title><?=$title?> - <?=$user['name']?> (<?=date('d-m-Y')?>)</title>
         <style>
              body {
                 font-family: 'Arial', sans-serif;
@@ -80,7 +80,7 @@
                 <img src="https://absen.enumatechnology.com/enumatech2.png" alt="Logo" style="position: absolute; z-index: -1; top: 20px; left: 30px; max-width: 150px;">
                 <!-- <img src="http://localhost:8080/enumatech2.png" alt="logo-enuma" class='logo'> -->
                 <div class="header-text">
-                    <h1>Laporan Absensi dan Log</h1>  
+                    <h1><?=$title?></h1>  
                 </div>
             </header>
             <table id='head'>
@@ -101,18 +101,6 @@
                     <td><?=$periode?></td>
                 </tr>
             </table>
-            <!-- <table id='right'>
-                <tr>
-                    <th width="110px">Tanggal Cetak</th>
-                    <td>:</td>
-                    <td width="170px"><?=date('d-m-Y')?></td>
-                </tr>
-                <tr>
-                    <th>Periode</th>
-                    <td>:</td>
-                    <td><?=$periode?></td>
-                </tr>
-            </table> -->
             <table id="data">
                 <thead>
                     <tr>
