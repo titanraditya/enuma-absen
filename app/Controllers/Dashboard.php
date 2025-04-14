@@ -5,6 +5,7 @@ namespace App\Controllers;
 use App\Models\CategoryModel;
 use App\Models\UserModel;
 use App\Models\AttendanceModel;
+use App\Models\SubcategoryOverseerModel;
 
 class Dashboard extends BaseController
 {
@@ -13,6 +14,7 @@ class Dashboard extends BaseController
         $this->categoryModel = new CategoryModel();
         $this->userModel = new UserModel();
         $this->attendanceModel = new AttendanceModel();
+        $this->subcategoryOverseerModel = new SubcategoryOverseerModel();
     }
 
     public function index()
@@ -39,9 +41,9 @@ class Dashboard extends BaseController
                 ->where('users.id',$id)
                 ->first();
             
-            $data['categorycount'] = $this->categoryModel
+            $data['categorycount'] = $this->subcategoryOverseerModel
                 ->select('COUNT(id) as total')
-                ->where('pengawas_id',$id)
+                ->where('user_id',$id)
                 ->first();
 
             return view('pages/dashboard_overseer',$data);

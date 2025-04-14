@@ -135,7 +135,7 @@ class Api extends BaseController
             //jika sudah absen
             if($todayAttendance) {
                 //check belum checkout
-                if($todayAttendance['checkout'] == null && $todayAttendance['no_limit'] = '0') {
+                if($todayAttendance['checkout'] == null && $todayAttendance['no_limit'] == '0') {
                     //check waktu pulang
                     if ($currentTime < $endTime) {
                         return $this->response->setJSON([
@@ -144,7 +144,10 @@ class Api extends BaseController
                         ])->setStatusCode(403);
                     }
 
-                    $data = ['checkout' => date('Y-m-d H:i:s'),];
+                    $data = [
+                        'checkout' => date('Y-m-d H:i:s'),
+                        'status' => 'departed',
+                    ];
 
                     if ($this->attendanceModel->update($todayAttendance['id'], $data)) {
                         return $this->response->setJSON([
