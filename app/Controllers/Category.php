@@ -5,6 +5,7 @@ namespace App\Controllers;
 use App\Models\CategoryModel;
 use App\Models\UserModel;
 use App\Models\ScheduleModel;
+use App\Models\SubcategoryOverseerModel;
 
 class Category extends BaseController
 {
@@ -15,6 +16,8 @@ class Category extends BaseController
         $this->categoryModel = new CategoryModel();
         $this->userModel = new UserModel();
         $this->scheduleModel = new ScheduleModel();
+        $this->schedulModel = new ScheduleModel();
+        $this->subcategoryOverseerModel = new SubcategoryOverseerModel();
     }
 
     public function index()
@@ -26,21 +29,20 @@ class Category extends BaseController
 
         if(session('user_role') == 'admin') {
             $data['category'] = $this->categoryModel
-                ->select('categories.*, count(u.id) as total, a.name as pengawas_name')
+                ->select('categories.*, count(u.id) as total')
                 ->join('users u','categories.id = u.category_id','left')
-                ->join('users a','categories.pengawas_id = a.id','left')
                 ->where('categories.id !=', '1')
                 ->orderBy('categories.name', 'asc')
                 ->groupBy('categories.id')
                 ->findAll();
         } else {
-            $data['category'] = $this->categoryModel
-                ->select('categories.*, count(u.id) as total, a.name as pengawas_name')
+            $data['category'] = $this->subcategoryOverseerModel
+                ->select('categories.*,count(u.id) as total')
+                ->join('categories','subcategory_overseer.category_id = categories.id')
                 ->join('users u','categories.id = u.category_id','left')
-                ->join('users a','categories.pengawas_id = a.id','left')
-                ->where('categories.pengawas_id', $id)
                 ->orderBy('categories.name', 'asc')
                 ->groupBy('categories.id')
+                ->where('subcategory_overseer.user_id',$id)
                 ->findAll();
         }
 
@@ -54,6 +56,12 @@ class Category extends BaseController
             ->join('users','users.id = categories.pengawas_id','left')
             ->find($id);
 
+        $pengawas = $this->subcategoryOverseerModel
+            ->select('subcategory_overseer.*, users.id as user_id, users.name as name')
+            ->join('users','users.id = subcategory_overseer.user_id')
+            ->where('subcategory_overseer.category_id',$id)
+            ->findAll();
+
         if (!$category) {
             throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound();
         } else {
@@ -64,7 +72,7 @@ class Category extends BaseController
 
         $user = $this->userModel
             ->where('category_id',$id)
-            // ->orderBy('name','asc')
+            ->orderBy('name','asc')
             ->findAll();
 
         $jadwal = $this->scheduleModel
@@ -76,6 +84,28 @@ class Category extends BaseController
         usort($jadwal, function ($a, $b) use ($dayOrder) {
             return array_search($a['day'], $dayOrder) - array_search($b['day'], $dayOrder);
         });
+
+        $data_pengawas = $this->userModel
+            ->select('users.name as name, users.id as id')
+            ->join('categories', 'categories.id = users.category_id', 'left')
+            ->where('categories.overseer', '1')
+            ->orderBy('users.name','ASC')
+            ->findAll();
+
+        // Menghapus elemen di $array1 yang ada di $array2
+        foreach ($pengawas as $item2) {
+            foreach ($data_pengawas as $key => $item1) {
+                if ($item1['id'] === $item2['user_id']) {
+                    unset($data_pengawas[$key]); // Menghapus item yang sama
+                }
+            }
+        }
+
+        // Reindex array setelah elemen dihapus
+        $data_pengawas = array_values($data_pengawas);
+
+        $data['pengawas'] = $data_pengawas;
+        $data['reg_pengawas'] = $pengawas;
 
         $data['title'] =  'Detail Grup - '.$category['name'];
         $data['subtitle'] = "Grup";
@@ -154,22 +184,23 @@ class Category extends BaseController
             return redirect()->back()->withInput();
         }
 
+        $id = uniqid();
+
         $data = [
-            'id' => uniqid(),
+            'id' => $id,
             'name' => $this->request->getPost('name'),
             'description' => $this->request->getPost('description'),            
         ];
 
         if($this->request->getPost('overseer')) {
             $data['overseer'] = '1';
-            $data['pengawas_id'] = null;
         } else {
             $data['overseer'] = '0';
-            $data['pengawas_id'] = $this->request->getPost('pengawas');
         }
 
+        $data['pengawas_id'] = null;
         if($this->categoryModel->insert($data)) {
-            return redirect()->to('category')->with('success', 'Grup berhasil ditambahkan.');
+            return redirect()->to('category/detail/'.$id)->with('success', 'Grup berhasil ditambahkan.');
         } else {
             return redirect()->back()->with('error', 'Gagal Menyimpan Data!');
         }
@@ -242,6 +273,44 @@ class Category extends BaseController
             return redirect()->to('category')->with('success', 'Grup berhasil dihapus.');
         } else {
             return redirect()->back()->with('error', 'Gagal Menghapus Grup!');
+        }
+    }
+
+    public function addpengawas()
+    {
+        if (session('user_role') != 'admin') {
+            throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound();
+        }
+
+        $id = $this->request->getPost('category_id');
+        $pengawas = $this->request->getPost('pengawas');
+
+        $data = [];
+        foreach ($pengawas as $pengawas) {
+            array_push($data,[
+                'user_id' => $pengawas,
+                'category_id' => $id
+            ]);
+        }
+        if ($this->subcategoryOverseerModel->insertBatch($data)) {
+            return redirect()->back()->with('success', 'Pengawas berhasil ditambahkan.');
+        } else {
+            return redirect()->back()->with('error', 'Pengawas gagal ditambahkan.');
+        }
+    }
+
+    public function deletepengawas()
+    {
+        if (session('user_role') != 'admin') {
+            throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound();
+        }
+
+        $id = $this->request->getPost('id');
+        
+        if($this->subcategoryOverseerModel->where('id',$id)->delete()) {
+            return redirect()->back()->with('success', 'Pengawas berhasil dihapus.');
+        } else {
+            return redirect()->back()->with('error', 'Gagal Menghapus Pengawas');
         }
     }
 }

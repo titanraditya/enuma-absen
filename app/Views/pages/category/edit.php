@@ -40,15 +40,6 @@
                                 <label for="makeoverseer" class="custom-control-label">Jadikan Pengawas</label>
                             </div>
                         </div>
-                        <div class="form-group">
-                            <label>Pengawas</label>
-                            <select class="form-control select2" style="width: 100%;" name="pengawas" id="pengawas">
-                                <option value="">-- Pilih --</option>
-                                <?php foreach($pengawas as $pengawas): ?>
-                                    <option value="<?=esc($pengawas['id'])?>" <?php if($category['pengawas_id'] == $pengawas['id']) { echo 'selected';}?>><?=esc($pengawas['name'])?></option>
-                                <?php endforeach; ?>
-                            </select>
-                        </div>
                     </div>
                     <div class="card-footer">
                         <button type="submit" class="btn btn-success">Simpan</button>
@@ -75,12 +66,7 @@
         } else {
             $('#pengawas').prop('disabled',false)
         }
-    }
-
-    $('#pengawas').select2({
-        theme: 'bootstrap4'
-    })
-    
+    } 
     
     var Toast = Swal.mixin({
         toast: true,

@@ -26,9 +26,6 @@
                                     <th>#</th>
                                     <th>Nama</th>
                                     <th>Deskripsi</th>
-                                    <?php if(session('user_role') == 'admin'): ?>
-                                    <th>Pengawas</th>
-                                    <?php endif; ?>
                                     <th>Total</th>
                                     <th>Aksi</th>
                                 </tr>
@@ -39,9 +36,6 @@
                                     <td><?=$no?></td>
                                     <td><?=esc($category['name'])?></td>
                                     <td><?=esc($category['description'])?></td>
-                                    <?php if(session('user_role') == 'admin'): ?>
-                                    <td><?php if($category['overseer'] == '1'){echo "<span class='badge badge-success'><i>Dijadikan Pengawas</i></span>";} else { if($category['pengawas_name']) {echo esc($category['pengawas_name']);} else { echo "<span class='badge badge-secondary'><i>Tanpa Pengawas</i></span>";}}?></td>
-                                    <?php endif; ?>
                                     <td><?=esc($category['total'])?> orang</td>
                                     <td><a href="<?=base_url()?>category/detail/<?=esc($category['id'])?>" class="btn btn-info btn-sm"><i class="fas fa-info"></i> &nbsp; Detail</a></td>
                                 </tr>

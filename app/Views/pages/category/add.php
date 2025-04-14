@@ -40,15 +40,6 @@
                                 <label for="makeoverseer" class="custom-control-label">Jadikan Pengawas</label>
                             </div>
                         </div>
-                        <div class="form-group">
-                            <label>Pengawas</label>
-                            <select class="form-control select2" style="width: 100%;" name="pengawas" id="pengawas">
-                                <option value="">-- Pilih --</option>
-                                <?php foreach($pengawas as $pengawas): ?>
-                                    <option value="<?=esc($pengawas['id'])?>"><?=esc($pengawas['name'])?></option>
-                                <?php endforeach; ?>
-                            </select>
-                        </div>
                     </div>
                     <div class="card-footer">
                         <button type="submit" class="btn btn-success">Simpan</button>
@@ -63,19 +54,6 @@
   <script src="<?=base_url()?>assets/plugins/sweetalert2/sweetalert2.min.js"></script>
   <script src="<?=base_url()?>assets/plugins/select2/js/select2.full.min.js"></script>
   <script>
-
-    function make_overseer() {
-        if ($('#makeoverseer').is(':checked')) {
-            $('#pengawas').prop('disabled',true)
-        } else {
-            $('#pengawas').prop('disabled',false)
-        }
-    }
-
-    $('#pengawas').select2({
-        theme: 'bootstrap4'
-    })
-    
     
     var Toast = Swal.mixin({
         toast: true,
