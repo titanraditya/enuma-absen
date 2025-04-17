@@ -21,7 +21,7 @@ class CreateAttendaceTable extends Migration
             ],
             'status' => [
                 'type'       => 'ENUM',
-                'constraint' => ['Hadir', 'Ijin', 'Pulang'],
+                'constraint' => ['Hadir', 'Ijin', 'Hadir (Online)'],
                 'default'    => 'Hadir',
             ],
             'no_limit' => [

@@ -88,7 +88,7 @@
                                 <tr>
                                     <td><?=$key + 1?></td>
                                     <td><?=esc($jadwal['day'])?></td>
-                                    <td><?php if($jadwal['no_limit'] == '1'){echo "<div class='text-muted'>Tanpa Batas Waktu</div>";} else { echo "Jam ".date("H:i", strtotime($jadwal['start_time']))." - Jam ".date("H:i", strtotime($jadwal['end_time']));}?></td>
+                                    <td><?php if($jadwal['no_limit'] == '1'){echo "<span class='text-muted'>Tanpa Batas Waktu</span>";} else { echo "Jam ".date("H:i", strtotime($jadwal['start_time']))." - Jam ".date("H:i", strtotime($jadwal['end_time']));}?><?php if($jadwal['online'] == '1') { echo " (Online)";}?></td>
                                     <td>
                                         <button onclick="edit(<?=esc($jadwal['id'])?>)" class="btn btn-sm btn-secondary"><i class="fas fa-edit"></i></button>
                                         <button onclick="deleteModal('<?=esc($jadwal['id'])?>');" class="btn btn-danger btn-sm"><i class="fas fa-trash"></i></button>
@@ -254,10 +254,18 @@
                     <select class="form-control" name="day" id="daySelect">
                     </select>
                 </div>
-                <div class="form-group">
-                    <div class="custom-control custom-checkbox">
-                        <input class="custom-control-input" type="checkbox" id="no_limit" onchange="timeform()" name="no_limit" value="1">
-                        <label for="no_limit" class="custom-control-label">Tanpa Batas Waktu</label>
+                <div class="justify-content-between d-flex">
+                    <div class="form-group">
+                        <div class="custom-control custom-checkbox">
+                            <input class="custom-control-input" type="checkbox" id="no_limit" onchange="timeform()" name="no_limit" value="1">
+                            <label for="no_limit" class="custom-control-label">Tanpa Batas Waktu</label>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <div class="custom-control custom-checkbox">
+                            <input class="custom-control-input" type="checkbox" id="online" name="online" value="1">
+                            <label for="online" class="custom-control-label">Masuk Online</label>
+                        </div>
                     </div>
                 </div>
                 <div class="form-group">
@@ -294,10 +302,18 @@
                     <label>Hari</label>
                     <h4 id="labelday"></h4>
                 </div>
-                <div class="form-group">
-                    <div class="custom-control custom-checkbox">
-                        <input class="custom-control-input" type="checkbox" id="no_limit2" onchange="timeform2()" name="no_limit" value="1">
-                        <label for="no_limit2" class="custom-control-label">Tanpa Batas Waktu</label>
+                <div class="d-flex justify-content-between">
+                    <div class="form-group">
+                        <div class="custom-control custom-checkbox">
+                            <input class="custom-control-input" type="checkbox" id="online2" name="online" value="1">
+                            <label for="online2" class="custom-control-label">Masuk Online</label>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <div class="custom-control custom-checkbox">
+                            <input class="custom-control-input" type="checkbox" id="no_limit2" onchange="timeform2()" name="no_limit" value="1">
+                            <label for="no_limit2" class="custom-control-label">Tanpa Batas Waktu</label>
+                        </div>
                     </div>
                 </div>
                 <div class="form-group">
@@ -425,6 +441,13 @@
                         $("#starttime2").val(data.start_time);
                         $("#endtime2").val(data.end_time);
                     }
+                    if (data.online == '1') {
+                        $('#online2').prop('checked', true);
+                    } else {
+                        $('#online2').prop('checked', false);
+    
+                    }
+                    
                     $('#editJadwalModal').modal();
                 })
                 .catch(error => console.error("Error fetching data:", error));

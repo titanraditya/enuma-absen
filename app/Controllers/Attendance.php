@@ -304,6 +304,7 @@ class Attendance extends BaseController
 
         $pdf = new PdfGenerator();
         $pdf->generate($html, $title.' - '.$user['name'].' ('.date('d-m-Y').').pdf', true);
+        exit();
     }
 
     public function ijin()

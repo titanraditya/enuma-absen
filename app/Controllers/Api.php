@@ -71,6 +71,7 @@ class Api extends BaseController
         $currentDay = date('l');
         $schedule = $this->scheduleModel
             ->where('category_id', $categoryId)
+            ->where('online', '0')
             ->where('day', $currentDay)
             ->first();
 

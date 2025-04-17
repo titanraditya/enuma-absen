@@ -20,7 +20,7 @@
                         <?php if(!$attendancecount) { ?>
                             <h4 class="text-bold text-danger">Tidak Hadir</h4>
                         <?php } else { ?>
-                            <h4 class="text-bold <?php if($attendancecount['status_today']=='Hadir') { echo "text-success";} else if ($attendancecount['status_today']=='Ijin') {echo "text-info";} else {echo "text-danger";}?>"><?=esc($attendancecount['status_today'])?></h4>
+                            <h4 class="text-bold <?php if($attendancecount['status_today']=='Hadir') { echo "text-success";} else if ($attendancecount['status_today']=='Ijin') {echo "text-info";} else if($attendancecount['status_today']=='Hadir (Online)') { echo "text-success";} else {echo "text-danger";}?>"><?=esc($attendancecount['status_today'])?></h4>
                         <?php } ?>
                     </div>
                     <div class="col-6">
@@ -32,11 +32,15 @@
         <div class="col-md-6 col-12">
             <div class="card">
                 <div class="card-body row">
-                    <div class="col-6">
+                    <div class="col-lg-4 col-6 ">
                         <h5>Total Kehadiran</h5>
                         <h4 class="text-bold"><?php if($attendancecount) { echo esc($attendancecount['count_hadir']); } else { echo '0';}?></h4>
                     </div>
-                    <div class="col-6">
+                    <div class="col-lg-4 col-6">
+                        <h5>Total Hadir Online</h5>
+                        <h4 class="text-bold"><?php if($attendancecount) { echo esc($attendancecount['count_online']); } else { echo '0';}?></h4>
+                    </div>
+                    <div class="col-lg-4 col-6">
                         <h5>Total Izin</h5>
                         <h4 class="text-bold"><?php if($attendancecount) { echo esc($attendancecount['count_ijin']); } else { echo '0';}?></h4>
                     </div>
@@ -81,7 +85,7 @@
                                 <button class='btn btn-secondary' onclick="printModal()"><i class="fas fa-print"></i> Print</button>
                         </div>
                     </div>
-                    <div class="table-responsive">
+                    <div class="table-responsive mt-4">
                         <table id="tabel-absensi" class='table table-bordered'>
                             <thead>
                                 <tr>
@@ -110,25 +114,37 @@
             <i class="fas fa-2x fa-sync fa-spin"></i>
         </div>
         <div class="modal-header">
-          <h4 class="modal-title">Tulis Log</h4>
+          <h4 class="modal-title"><i class="fas fa-pen mr-2"></i> Tulis Log</h4>
           <button type="button" class="close" data-dismiss="modal" aria-label="Close">
             <span aria-hidden="true">&times;</span>
           </button>
         </div>
         <div class="modal-body">
-            <div id='form_log'>
-            <form method="post" action="<?=base_url()?>log" id="form-log">
+          <div id='form_log'>
+            <form method="post" action="<?=base_url()?>log" id="form-log" enctype="multipart/form-data">
                 <?=csrf_field();?>
                 <div class="form-group">
-                    <label>Aktifitas</label>
-                    <input type="text" id="activity_text" name="activity" class="form-control">
-                    <label>Deskripsi</label>
-                    <textarea id="description_text" name="description" class="form-control"></textarea>
+                    <label>Aktivitas</label>
+                    <input type="text" id="activity_text" name="activity" class="form-control" autocomplete="off">
+                    <div class="invalid-feedback" id="err-activity">
+                    </div>
+                </div>
+                <label>Deskripsi</label>
+                <textarea id="description_text" name="description" class="form-control"></textarea>
+                <div class="mt-3" id="ss_log">
+                    <label>Screenshot bukti</label>
+                    <img src="" id="image_ss" class="w-100 mb-2"></img>
+                    <div class="custom-file">
+                        <input type="file" class="custom-file-input" name="image" id="customFile" accept="image/jpg, image/jpeg, image/png">
+                        <label class="custom-file-label" for="customFile">Choose file</label>
+                        <div class="invalid-feedback" id="err-upload">
+                        </div>
+                    </div>
                 </div>
             </form>
           </div>
           <div id='error_log'>
-            <p id="error_msg" class="text-center"></p>
+            <p id="error_msg" class="text-center mt-2"></p>
           </div>
         </div>
         <div class="modal-footer justify-content-between">
@@ -145,7 +161,7 @@
             <i class="fas fa-2x fa-sync fa-spin"></i>
         </div>
         <div class="modal-header">
-          <h4 class="modal-title" id="title-ijin">Detail Log</h4>
+          <h4 class="modal-title" id="title-ijin"><i class="fas fa-info mr-2"></i> Detail Log</h4>
           <button type="button" class="close" data-dismiss="modal" aria-label="Close">
             <span aria-hidden="true">&times;</span>
           </button>
@@ -159,7 +175,12 @@
                         <td id="date-text"></td>
                     </tr>
                     <tr>
-                        <th>Aktifitas</th>
+                        <th>Status</th>
+                        <td> : </td>
+                        <td id="status-text"></td>
+                    </tr>
+                    <tr>
+                        <th>Aktivitas</th>
                         <td> : </td>
                         <td id="activity-text"></td>
                     </tr>
@@ -169,6 +190,7 @@
                         <td id="description-text"></td>
                     </tr>
                 </table>
+                <img src="" id="ss_image" class="w-100 mt-2">
             </div>
             <div id='error_log'>
                 <p id="error_msg" class="text-center"></p>
@@ -237,7 +259,14 @@
     <script src="<?=base_url()?>assets/plugins/datatables/jquery.dataTables.min.js"></script>
     <script src="<?=base_url()?>assets/plugins/datatables-bs4/js/dataTables.bootstrap4.min.js"></script>
     <script src="<?=base_url()?>assets/plugins/sweetalert2/sweetalert2.min.js"></script>
+    <script src="<?=base_url()?>assets/plugins/bs-custom-file-input/bs-custom-file-input.min.js"></script>
     <script>
+        var absenonline;
+        var preventabsenimages;
+        var thereisimage;
+        $(function () {
+            bsCustomFileInput.init();
+        });
         function printModal() {
             $('#printModal').modal();
         }
@@ -264,8 +293,15 @@
                     $('#error_log').hide();
                     $('#detail_log').show();
                     $('#date-text').html(response.date);
+                    $('#status-text').html(response.status_id);
                     $('#activity-text').html(response.activity);
                     $('#description-text').html(response.description);
+                    if(response.image != '') {
+                        $("#ss_image").attr("src","<?=base_url()?>images/data/"+response.user_id+"/"+response.image);
+                        $('#ss_image').show();
+                    } else {
+                        $('#ss_image').hide();
+                    }
                     $('#btn-submit').show();
                     $('#overlayshowlog').hide();
                 },
@@ -302,7 +338,50 @@
 
         function logSubmit()
         {
-            document.getElementById('form-log').submit();
+            activity = document.getElementById("activity_text");
+            upload = document.getElementById("customFile");
+            
+            validimage = ['image/gif', 'image/jpeg', 'image/png'];
+
+            if (activity.value == "") {
+                if(!activity.classList.contains('is-invalid')) {
+                    activity.classList.add('is-invalid');
+                }
+                $('#err-activity').html("Aktivitas belum di isi");
+            } else {
+                if(activity.classList.contains('is-invalid')) {
+                    activity.classList.remove('is-invalid');
+                }
+            }
+
+            if (upload.files.length == 0 && absenonline == true && preventabsenimages == true) {
+                if(!upload.classList.contains('is-invalid')) {
+                    upload.classList.add('is-invalid');
+                }
+                $('#err-upload').html("File upload belum di pilih");
+            } else if(upload.files.length != 0 && absenonline == true && preventabsenimages == true) {
+                file = upload.files[0];
+                fileType = file['type'];
+                if (!validimage.includes(fileType)) {
+                    if(!upload.classList.contains('is-invalid')) {
+                        upload.classList.add('is-invalid');
+                    }
+                    $('#err-upload').html("File yang dipilih bukan image");
+                } else {
+                    if(upload.classList.contains('is-invalid')) {
+                        upload.classList.remove('is-invalid');
+                    }
+                }
+            }
+            if (preventabsenimages == false) {
+                if(activity.value != "") {
+                    document.getElementById('form-log').submit();
+                }
+            } else {
+                if(activity.value != "" && upload.files.length != 0 && validimage.includes(fileType)) {
+                    document.getElementById('form-log').submit();
+                }
+            }
         }
 
 
@@ -315,15 +394,45 @@
                 dataType: "json",
                 success: function(response) {
                     if(response.status == 'success') {
+                        absenonline = false;
                         $('#error_log').hide();
                         $('#form_log').show();
+                        $('#ss_log').hide();
                         $('#activity_text').val(response.activity);
                         $('#description_text').html(response.description);
+                        $('#image_ss').show();
+                        $('#btn-submit').show();
+                        $('#overlaylog').hide();
+                    } else if(response.status == 'online') {
+                        absenonline = true;
+                        $('#error_log').hide();
+                        $('#form_log').show();
+                        $('#ss_log').show();
+                        $('#activity_text').val(response.activity);
+                        $('#description_text').html(response.description);
+                        if(response.image != "") {
+                            preventabsenimages = false;
+                            thereisimage = true;
+                            $("#image_ss").attr("src","<?=base_url()?>images/data/"+response.user_id+"/"+response.image);
+                            $('#image_ss').show();
+                        } else {
+                            preventabsenimages = true;
+                            thereisimage = false;
+                            $('#image_ss').hide();
+                        }
+                        if(response.message != "") {
+                            $('#error_msg').html(response.message);
+                            $('#error_log').show();
+                        } else {
+                            $('#error_log').hide();
+                        }
                         $('#btn-submit').show();
                         $('#overlaylog').hide();
                     } else {
                         $('#error_msg').html(response.message);
                         $('#error_log').show();
+                        $('#ss_log').hide();
+                        $('#image_ss').hide();
                         $('#form_log').hide();
                         $('#btn-submit').hide();
                         $('#overlaylog').hide();
@@ -418,7 +527,7 @@
                     {data:'waktu'},
                     {data:'id',
                        render: function (data, type, row, meta) {
-                            return '<a class="btn btn-sm btn-info text-white" onClick="showLog('+"'"+data+"'"+')"><i class="fas fa-pen"></i> Lihat Log</a>';
+                            return '<a class="btn btn-sm btn-info text-white" onClick="showLog('+"'"+data+"'"+')"><i class="fas fa-eye"></i> Lihat Log</a>';
                         }   
                     },
                 ],

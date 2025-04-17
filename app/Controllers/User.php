@@ -64,6 +64,7 @@ class User extends BaseController
             ->select("user_id,
                     COUNT(CASE WHEN status = 'Hadir' THEN 1 END) AS count_hadir, 
                     COUNT(CASE WHEN status = 'Ijin' THEN 1 END) AS count_ijin, 
+                    COUNT(CASE WHEN status = 'Hadir (Online)' THEN 1 END) AS count_online, 
                     COALESCE(MAX(CASE WHEN DATE(created_at) = CURDATE() THEN status END),'Tidak Hadir') AS status_today")
             ->where('user_id', $id)
             ->groupBy('user_id')
@@ -232,9 +233,32 @@ class User extends BaseController
         $id = $this->request->getPost('id');
         
         if($this->userModel->where('id',$id)->delete()) {
+            $path = "images/data/".$id;
+            deleteFolder($path);
             return redirect()->to('user')->with('success', 'User berhasil dihapus.');
         } else {
             return redirect()->back()->with('error', 'Gagal Menghapus User!');
         }
     }
+
+    function deleteFolder($folderPath)
+    {
+        if (!is_dir($folderPath)) {
+            return false;
+        }
+
+        $files = array_diff(scandir($folderPath), ['.', '..']);
+
+        foreach ($files as $file) {
+            $fullPath = $folderPath . DIRECTORY_SEPARATOR . $file;
+            if (is_dir($fullPath)) {
+                deleteFolder($fullPath); // recursive hapus subfolder
+            } else {
+                unlink($fullPath); // hapus file
+            }
+        }
+
+        return rmdir($folderPath); // hapus folder setelah kosong
+    }
+
 }

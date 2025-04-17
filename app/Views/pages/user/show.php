@@ -34,7 +34,7 @@
                         <?php if(!$attendancecount) { ?>
                             <h4 class="text-bold text-danger">Tidak Hadir</h4>
                         <?php } else { ?>
-                            <h4 class="text-bold <?php if($attendancecount['status_today']=='Hadir') { echo "text-success";} else if ($attendancecount['status_today']=='Ijin') {echo "text-info";} else {echo "text-danger";}?>"><?=esc($attendancecount['status_today'])?></h4>
+                            <h4 class="text-bold <?php if($attendancecount['status_today']=='Hadir') { echo "text-success";} else if ($attendancecount['status_today']=='Ijin') {echo "text-info";} else if($attendancecount['status_today']=='Hadir (Online)') { echo "text-success";} else {echo "text-danger";}?>"><?=esc($attendancecount['status_today'])?></h4>
                         <?php } ?>
                     </div>
                     <div class="col-6">
@@ -50,11 +50,15 @@
             </div>
             <div class="card">
                 <div class="card-body row">
-                    <div class="col-6">
+                    <div class="col-lg-4 col-6 ">
                         <h5>Total Kehadiran</h5>
                         <h4 class="text-bold"><?php if($attendancecount) { echo esc($attendancecount['count_hadir']); } else { echo '0';}?></h4>
                     </div>
-                    <div class="col-6">
+                    <div class="col-lg-4 col-6">
+                        <h5>Total Hadir Online</h5>
+                        <h4 class="text-bold"><?php if($attendancecount) { echo esc($attendancecount['count_online']); } else { echo '0';}?></h4>
+                    </div>
+                    <div class="col-lg-4 col-6">
                         <h5>Total Izin</h5>
                         <h4 class="text-bold"><?php if($attendancecount) { echo esc($attendancecount['count_ijin']); } else { echo '0';}?></h4>
                     </div>
@@ -408,7 +412,7 @@
                     {data:'waktu'},
                     {data:'id',
                        render: function (data, type, row, meta) {
-                            return '<a class="btn btn-sm btn-info text-white" onClick="showLog('+"'"+data+"'"+')"><i class="fas fa-pen"></i> Lihat Log</a>';
+                            return '<a class="btn btn-sm btn-info text-white" onClick="showLog('+"'"+data+"'"+')"><i class="fas fa-eye"></i> Lihat Log</a>';
                         }   
                     },
                 ],

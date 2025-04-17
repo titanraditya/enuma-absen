@@ -12,7 +12,7 @@ class ScheduleModel extends Model
     protected $returnType       = 'array';
     protected $useSoftDeletes   = false;
     protected $protectFields    = true;
-    protected $allowedFields    = ['category_id','day','no_limit','start_time','end_time'];
+    protected $allowedFields    = ['category_id','day','no_limit','start_time','end_time','online'];
 
     protected bool $allowEmptyInserts = false;
     protected bool $updateOnlyChanged = true;
