@@ -234,7 +234,7 @@ class User extends BaseController
         
         if($this->userModel->where('id',$id)->delete()) {
             $path = "images/data/".$id;
-            deleteFolder($path);
+            $this->deleteFolder($path);
             return redirect()->to('user')->with('success', 'User berhasil dihapus.');
         } else {
             return redirect()->back()->with('error', 'Gagal Menghapus User!');

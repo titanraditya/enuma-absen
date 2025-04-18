@@ -207,7 +207,7 @@
             <i class="fas fa-2x fa-sync fa-spin"></i>
         </div>
         <div class="modal-header">
-          <h4 class="modal-title" id="title-ijin">Detail Log</h4>
+          <h4 class="modal-title" id="title-ijin"><i class="fas fa-info mr-2"></i> Detail Log</h4>
           <button type="button" class="close" data-dismiss="modal" aria-label="Close">
             <span aria-hidden="true">&times;</span>
           </button>
@@ -221,7 +221,12 @@
                         <td id="date-text"></td>
                     </tr>
                     <tr>
-                        <th>Aktifitas</th>
+                        <th>Status</th>
+                        <td> : </td>
+                        <td id="status-text"></td>
+                    </tr>
+                    <tr>
+                        <th>Aktivitas</th>
                         <td> : </td>
                         <td id="activity-text"></td>
                     </tr>
@@ -231,6 +236,7 @@
                         <td id="description-text"></td>
                     </tr>
                 </table>
+                <img src="" id="ss_image" class="w-100 mt-2">
             </div>
             <div id='error_log'>
                 <p id="error_msg" class="text-center"></p>
@@ -272,21 +278,20 @@
                 type: "GET",
                 dataType: "json",
                 success: function(response) {
-                    if(response.status == 'success') {
-                        $('#error_log').hide();
-                        $('#detail_log').show();
-                        $('#date-text').html(response.date);
-                        $('#activity-text').html(response.activity);
-                        $('#description-text').html(response.description);
-                        $('#btn-submit').show();
-                        $('#overlayshowlog').hide();
+                    $('#error_log').hide();
+                    $('#detail_log').show();
+                    $('#date-text').html(response.date);
+                    $('#status-text').html(response.status_id);
+                    $('#activity-text').html(response.activity);
+                    $('#description-text').html(response.description);
+                    if(response.image != '') {
+                        $("#ss_image").attr("src","<?=base_url()?>images/data/"+response.user_id+"/"+response.image);
+                        $('#ss_image').show();
                     } else {
-                        $('#error_msg').html(response.message);
-                        $('#error_log').show();
-                        $('#detail_log').hide();
-                        $('#btn-submit').hide();
-                        $('#overlayshowlog').hide();
+                        $('#ss_image').hide();
                     }
+                    $('#btn-submit').show();
+                    $('#overlayshowlog').hide();
                 },
                 error: function(xhr, status, error) {
                     $('#error_msg').html('Something wrong with server');
