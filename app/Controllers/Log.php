@@ -77,7 +77,7 @@ class Log extends BaseController
                         $output['activity'] = '';
                         $output['desctiption'] = '';
                         $output['image'] = '';
-                        $output['message'] = '';
+                        $output['message'] = '<span class="text-muted">Jam <b>MAKSIMAL</b> untuk absen hari ini jam <b>'.substr($schedule['end_time'], 0, -3).'</b></span>';
                     } else {
                         $output = [
                             'status' => 'error',
@@ -112,16 +112,16 @@ class Log extends BaseController
                     $endTime = strtotime($schedule['end_time']);
                     if ($startTime < $currentTime AND $currentTime < $endTime) {
                         $output['status'] = 'online';
-                        $output['message'] = '<span class="text-muted">Jam maksimal untuk absen hari ini jam <b>'.substr($schedule['end_time'], 0, -3).'</b></span>';
+                        $output['message'] = '<span class="text-muted">Jam <b>MAKSIMAL</b> untuk absen hari ini jam <b>'.substr($schedule['end_time'], 0, -3).'</b></span>';
                     } else {
                         $output = [
                             'status' => 'error',
                             'message' => 'Anda <b>TIDAK</b> berada di waktu absen yaitu antara jam <b>'.substr($schedule['start_time'], 0, -3).' - '.substr($schedule['end_time'], 0, -3).'</b>',
                         ];
                     }
+                } else {
+                    $output['status'] = 'online';
                 }
-                
-                
             } else {
                 $output['status'] = 'success';
                 $output['message'] = '';
@@ -172,20 +172,19 @@ class Log extends BaseController
             if ($this->request->getFile('image') && $this->request->getFile('image')->isValid()) {
                 $oldimage = $todayAttendance['image'];
                 $image = $this->request->getFile('image');
-                $newName = $image->getRandomName();
-                $data['image'] = $newName;
-                $imagePath = 'images/data/'.$id.'/';
-                $image->move($imagePath, $newName);
-                $imageOriginal = $imagePath.$newName;
-                $imageService = \Config\Services::image()
-                    ->withFile($imageOriginal)
-                    ->resize(1280, 720, true) // Resize dengan menjaga rasio aspek
-                    ->save($imagePath . $newName, 50);
-                $todayAttendance['image'] = $newName;
+                $originalName = $image->getRandomName();
+                $tempPath = 'images/data/temp/' . $originalName;
+                $jpgName = pathinfo($originalName, PATHINFO_FILENAME) . '.jpg';
+                $jpgPath = 'images/data/'.$id.'/' . $jpgName;
+                $data['image'] = $jpgName;
+                $imagePath = 'images/data/temp/';
+                $image->move($imagePath, $originalName);
+                $this->convertAnyToJpg($tempPath, $jpgPath);
+                unlink($tempPath);
                 if ($this->attendanceModel->update($todayAttendance['id'], $data)) {
                     $path = "images/data/".$id.'/';
-                    if (file_exists($imagePath.$oldimage)) {
-                        unlink($imagePath.$oldimage);
+                    if (file_exists($path.$oldimage)) {
+                        unlink($path.$oldimage);
                     }
                     return redirect()->to('log')->with('success', 'Log berhasil disimpan.');
                 } else {
@@ -227,19 +226,20 @@ class Log extends BaseController
                     if ($startTime < $currentTime AND $currentTime < $endTime) {
                         if($this->request->getFile('image') && $this->request->getFile('image')->isValid()) {
                             $image = $this->request->getFile('image');
-                            $newName = $image->getRandomName();
-                            $data['image'] = $newName;
+                            $originalName = $image->getRandomName();
+                            $tempPath = 'images/data/temp/' . $originalName;
+                            $jpgName = pathinfo($originalName, PATHINFO_FILENAME) . '.jpg';
+                            $jpgPath = 'images/data/'.$id.'/' . $jpgName;
+                            $data['image'] = $jpgName;
                             if ($this->attendanceModel->insert($data)) {
                                 $imagePath = 'images/data/'.$id.'/';
                                 if (!is_dir($imagePath)) {
                                     mkdir($imagePath, 0777, true);
                                 }
-                                $image->move($imagePath, $newName);
-                                $imageOriginal = $imagePath.$newName;
-                                $imageService = \Config\Services::image()
-                                    ->withFile($imageOriginal)
-                                    ->resize(1280, 720, true) // Resize dengan menjaga rasio aspek
-                                    ->save($imagePath . $newName, 50);
+                                $imagePath = 'images/data/temp/';
+                                $image->move($imagePath, $originalName);
+                                $this->convertAnyToJpg($tempPath, $jpgPath);
+                                unlink($tempPath);
                                 return redirect()->to('log')->with('success', 'Log berhasil disimpan.');
                             } else {
                                 return redirect()->back()->with('error', 'Log gagal disimpan.');
@@ -253,19 +253,20 @@ class Log extends BaseController
                 } else {
                     if($this->request->getFile('image') && $this->request->getFile('image')->isValid()) {
                         $image = $this->request->getFile('image');
-                        $newName = $image->getRandomName();
-                        $data['image'] = $newName;
+                        $originalName = $image->getRandomName();
+                        $tempPath = 'images/data/temp/' . $originalName;
+                        $jpgName = pathinfo($originalName, PATHINFO_FILENAME) . '.jpg';
+                        $jpgPath = 'images/data/'.$id.'/' . $jpgName;
+                        $data['image'] = $jpgName;
                         if ($this->attendanceModel->insert($data)) {
                             $imagePath = 'images/data/'.$id.'/';
                             if (!is_dir($imagePath)) {
                                 mkdir($imagePath, 0777, true);
                             }
-                            $image->move($imagePath, $newName);
-                            $imageOriginal = $imagePath.$newName;
-                            $imageService = \Config\Services::image()
-                                ->withFile($imageOriginal)
-                                ->resize(1280, 720, true) // Resize dengan menjaga rasio aspek
-                                ->save($imagePath . $newName, 50);
+                            $imagePath = 'images/data/temp/';
+                            $image->move($imagePath, $originalName);
+                            $this->convertAnyToJpg($tempPath, $jpgPath);
+                            unlink($tempPath);
                             return redirect()->to('log')->with('success', 'Log berhasil disimpan.');
                         } else {
                             return redirect()->back()->with('error', 'Log gagal disimpan.');
@@ -279,5 +280,44 @@ class Log extends BaseController
             }
         }
 
+    }
+    private function convertAnyToJpg($sourcePath, $targetPath, $quality = 50)
+    {
+        $info = getimagesize($sourcePath);
+        if (!$info) return false;
+
+        $mime = $info['mime'];
+        switch ($mime) {
+            case 'image/jpeg':
+                $image = imagecreatefromjpeg($sourcePath);
+                break;
+            case 'image/png':
+                $image = imagecreatefrompng($sourcePath);
+                break;
+            case 'image/gif':
+                $image = imagecreatefromgif($sourcePath);
+                break;
+            case 'image/webp':
+                $image = imagecreatefromwebp($sourcePath);
+                break;
+            default:
+                return false; // Format tidak didukung
+        }
+
+        // Buat canvas baru & hilangkan transparansi (isi putih)
+        $width = imagesx($image);
+        $height = imagesy($image);
+        $bg = imagecreatetruecolor($width, $height);
+        $white = imagecolorallocate($bg, 255, 255, 255);
+        imagefill($bg, 0, 0, $white);
+        imagecopy($bg, $image, 0, 0, 0, 0, $width, $height);
+
+        // Simpan jadi JPG
+        imagejpeg($bg, $targetPath, $quality);
+
+        imagedestroy($image);
+        imagedestroy($bg);
+
+        return true;
     }
 }

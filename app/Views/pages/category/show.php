@@ -113,6 +113,7 @@
                                 <tr>
                                     <th width="50px">#</th>
                                     <th>Nama</th>
+                                    <th>Status</th>
                                     <th width="100px">Aksi</th>
                                 </tr>
                             </thead>
@@ -121,6 +122,7 @@
                                 <tr>
                                     <td><?=$key + 1?></td>
                                     <td><?=esc($user['name'])?></td>
+                                    <td><div class="badge <?php if($user['status'] == "Tidak Hadir") { echo "badge-danger";} else if($user['status'] == "Ijin") { echo "badge-info"; } else { echo "badge-success"; }?>"><?=esc($user['status'])?></div></td>
                                     <td>
                                         <a href="<?=base_url()?>category/user/detail/<?=esc($user['id'])?>" class="btn btn-sm btn-info"><i class="fas fa-eye"></i> show</a><br>
                                     </td>

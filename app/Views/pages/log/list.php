@@ -192,8 +192,8 @@
                 </table>
                 <img src="" id="ss_image" class="w-100 mt-2">
             </div>
-            <div id='error_log'>
-                <p id="error_msg" class="text-center"></p>
+            <div id='error_log2'>
+                <p id="error_msg2" class="text-center"></p>
             </div>
         </div>
         <div class="modal-footer justify-content-between">
@@ -248,7 +248,7 @@
         </div>
         <div class="modal-footer justify-content-between">
           <button type="button" class="btn btn-default" data-dismiss="modal">Batal</button>
-          <button type="button" onclick="print()" class="btn btn-info">Ya</button>
+          <button type="button" onclick="print()" class="btn btn-info"><i class="fas fa-print"></i> Print</button>
         </div>
       </div>
     </div>
@@ -290,7 +290,7 @@
                 type: "GET",
                 dataType: "json",
                 success: function(response) {
-                    $('#error_log').hide();
+                    $('#error_log2').hide();
                     $('#detail_log').show();
                     $('#date-text').html(response.date);
                     $('#status-text').html(response.status_id);
@@ -306,12 +306,27 @@
                     $('#overlayshowlog').hide();
                 },
                 error: function(xhr, status, error) {
-                    $('#error_msg').html('Something wrong with server');
-                    $('#error_log').show();
+                    if (status === 'timeout') {
+                        $('#error_msg2').html('TimeoutError: Permintaan melebihi waktu yang ditentukan.');;
+                    } else if (status === 'abort') {
+                        $('#error_msg2').html('AbortError: Permintaan dibatalkan.');
+                    } else if (status === 'parsererror') {
+                        $('#error_msg2').html('ParseError: Gagal mem-parsing data JSON.');
+                    } else if (xhr.status === 0) {
+                        $('#error_msg2').html('NetworkError: Tidak dapat terhubung ke server. Periksa koneksi internet.');
+                    } else if (xhr.status >= 400 && xhr.status < 600) {
+                        $('#error_msg2').html(`ServerError (Status ${xhr.status}): ${error}`);
+                    } else {
+                        $('#error_msg2').html(`UnexpectedError: ${status} - ${error}`);
+                    }
+                    // console.log(xhr.status)
+                    // $('#error_msg').html('Something wrong with server');
+                    $('#error_log2').show();
                     $('#detail_log').hide();
                     $('#btn-submit').hide();
                     $('#overlayshowlog').hide();
-                }
+                },
+                timeout: 5000
             });
         }
 
@@ -373,7 +388,7 @@
                     }
                 }
             }
-            if (preventabsenimages == false) {
+            if (absenonline == false) {
                 if(activity.value != "") {
                     document.getElementById('form-log').submit();
                 }
@@ -439,7 +454,20 @@
                     }
                 },
                 error: function(xhr, status, error) {
-                    $('#error_msg').html('Something wrong with server');
+                    if (status === 'timeout') {
+                        $('#error_msg').html('TimeoutError: Permintaan melebihi waktu yang ditentukan.');;
+                    } else if (status === 'abort') {
+                        $('#error_msg').html('AbortError: Permintaan dibatalkan.');
+                    } else if (status === 'parsererror') {
+                        $('#error_msg').html('ParseError: Gagal mem-parsing data JSON.');
+                    } else if (xhr.status === 0) {
+                        $('#error_msg').html('NetworkError: Tidak dapat terhubung ke server. Periksa koneksi internet.');
+                    } else if (xhr.status >= 400 && xhr.status < 600) {
+                        $('#error_msg').html(`ServerError (Status ${xhr.status}): ${error}`);
+                    } else {
+                        $('#error_msg').html(`UnexpectedError: ${status} - ${error}`);
+                    }
+                    // $('#error_msg').html('Something wrong with server');
                     $('#error_log').show();
                     $('#form_log').hide();
                     $('#btn-submit').hide();

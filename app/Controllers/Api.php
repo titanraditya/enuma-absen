@@ -147,10 +147,10 @@ class Api extends BaseController
 
                     $data = [
                         'checkout' => date('Y-m-d H:i:s'),
-                        'status' => 'departed',
                     ];
 
                     if ($this->attendanceModel->update($todayAttendance['id'], $data)) {
+                        $data['status'] = "departed";
                         return $this->response->setJSON([
                             'status'  => 'success',
                             'message' => 'Attendance checkout recorded successfully',
