@@ -71,7 +71,6 @@ class Api extends BaseController
         $currentDay = date('l');
         $schedule = $this->scheduleModel
             ->where('category_id', $categoryId)
-            ->where('online', '0')
             ->where('day', $currentDay)
             ->first();
 
@@ -135,14 +134,70 @@ class Api extends BaseController
 
             //jika sudah absen
             if($todayAttendance) {
+                if($todayAttendance['status'] == "online") {
+                    return $this->response->setJSON([
+                        'status'  => 'error',
+                        'message' => 'Kamu sudah absen hari ini!',
+                    ])->setStatusCode(403);
+                }
+                //check belum 15menit
+                $checkin = strtotime($todayAttendance['checkin']);
+                $selisihlebih = $currentTime - $checkin;
+                if ($selisihlebih <= 15 * 60) {
+                    return $this->response->setJSON([
+                        'status'  => 'error',
+                        'message' => 'Tunggu 15 menit untuk absen pulang',
+                    ])->setStatusCode(403);
+                }
                 //check belum checkout
                 if($todayAttendance['checkout'] == null && $todayAttendance['no_limit'] == '0') {
                     //check waktu pulang
                     if ($currentTime < $endTime) {
-                        return $this->response->setJSON([
-                            'status'  => 'error',
-                            'message' => 'Belum waktunya kamu pulang!',
-                        ])->setStatusCode(403);
+                        $data = [
+                            'checkout' => date('Y-m-d H:i:s'),
+                            'pulcep' => '1',
+                        ];
+                        if ($this->attendanceModel->update($todayAttendance['id'], $data)) {
+                            $data['status'] = "departed";
+                            return $this->response->setJSON([
+                                'status'  => 'success',
+                                'message' => 'Attendance checkout recorded successfully',
+                                'data'    => $data,
+                                'user'    => $user,
+                            ])->setStatusCode(200);
+                        } else {
+                            return $this->response->setJSON([
+                                'status'  => 'error',
+                                'message' => 'Failed to record checkout',
+                            ])->setStatusCode(500);
+                        }
+                        // return $this->response->setJSON([
+                        //     'status'  => 'error',
+                        //     'message' => 'Belum waktunya kamu pulang!',
+                        // ])->setStatusCode(403);
+                    }
+
+                    //lembur
+                    $selisihlembur = $currentTime - $endTime;
+                    if ($selisihlembur >= 60 * 60) {
+                        $data = [
+                            'checkout' => date('Y-m-d H:i:s'),
+                            'lembur' => '1',
+                        ];
+                        if ($this->attendanceModel->update($todayAttendance['id'], $data)) {
+                            $data['status'] = "departed";
+                            return $this->response->setJSON([
+                                'status'  => 'success',
+                                'message' => 'Attendance checkout recorded successfully',
+                                'data'    => $data,
+                                'user'    => $user,
+                            ])->setStatusCode(200);
+                        } else {
+                            return $this->response->setJSON([
+                                'status'  => 'error',
+                                'message' => 'Failed to record checkout',
+                            ])->setStatusCode(500);
+                        }
                     }
 
                     $data = [
@@ -194,10 +249,38 @@ class Api extends BaseController
                         ])->setStatusCode(500);
                     }
                 } else {
-                    return $this->response->setJSON([
-                        'status'  => 'error',
-                        'message' => 'Kamu Terlambat! Hubungi pengawas kamu untuk melakukan absen',
-                    ])->setStatusCode(403);
+                    //check waktu pulang
+                    if ($currentTime >= $endTime) {
+                        return $this->response->setJSON([
+                            'status'  => 'error',
+                            'message' => 'Sudah waktunya pulang!',
+                        ])->setStatusCode(403);
+                    }
+                    $data = [
+                        'user_id' => $userId,
+                        'status'  => 'Hadir',
+                        'no_limit'=> '0',
+                        'terlambat' => '1',
+                        'checkin' => date('Y-m-d H:i:s'),
+                    ];
+
+                    if ($this->attendanceModel->insert($data)) {
+                        return $this->response->setJSON([
+                            'status'  => 'success',
+                            'message' => 'Attendance check-in recorded successfully',
+                            'data'    => $data,
+                            'user'    => $user,
+                        ])->setStatusCode(201);
+                    } else {
+                        return $this->response->setJSON([
+                            'status'  => 'error',
+                            'message' => 'Failed to record check-in',
+                        ])->setStatusCode(500);
+                    }
+                    // return $this->response->setJSON([
+                    //     'status'  => 'error',
+                    //     'message' => 'Kamu Terlambat! Hubungi pengawas kamu untuk melakukan absen',
+                    // ])->setStatusCode(403);
                 }
             }
 

@@ -12,7 +12,7 @@ class AttendanceModel extends Model
     protected $returnType       = 'array';
     protected $useSoftDeletes   = false;
     protected $protectFields    = true;
-    protected $allowedFields    = ['user_id', 'status', 'checkin', 'checkout', 'no_limit', 'activity', 'description','image'];
+    protected $allowedFields    = ['user_id', 'status', 'checkin', 'checkout', 'no_limit', 'terlambat', 'pulcep', 'lembur', 'activity', 'description','image'];
 
     protected bool $allowEmptyInserts = false;
     protected bool $updateOnlyChanged = true;

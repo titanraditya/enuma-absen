@@ -36,6 +36,7 @@ class Log extends BaseController
                     COALESCE(MAX(CASE WHEN DATE(created_at) = CURDATE() THEN status END),'Tidak Hadir') AS status_today")
             ->where('user_id', $id)
             ->groupBy('user_id')
+            ->orderBy('user_id')
             ->first();
 
         return view('pages/log/list',$data);
@@ -53,6 +54,22 @@ class Log extends BaseController
             ->select('id, name, category_id')
             ->where('id', $id)
             ->first();
+
+        $categoryId = $user['category_id'];
+
+        $currentDay = date('l');
+        $schedule = $this->scheduleModel
+            ->where('category_id', $categoryId)
+            ->where('online', '1')
+            ->where('day', $currentDay)
+            ->first();
+
+        if (!$schedule) {
+            return $this->response->setJSON([
+                'status'  => 'error',
+                'message' => 'Tidak ada jadwal untuk kamu hari ini.',
+            ])->setStatusCode(200);
+        }
 
         $existingAttendance = $this->attendanceModel
             ->select('id, activity, description, status, user_id, image')
@@ -188,13 +205,13 @@ class Log extends BaseController
                     }
                     return redirect()->to('log')->with('success', 'Log berhasil disimpan.');
                 } else {
-                    return redirect()->back()->with('error', 'Log gagal disimpan.');
+                    return redirect()->back()->with('error', 'Log gagal disimpan. db gagal');
                 }
             } else {
                 if ($this->attendanceModel->update($todayAttendance['id'], $data)) {
                     return redirect()->to('log')->with('success', 'Log berhasil disimpan.');
                 } else {
-                    return redirect()->back()->with('error', 'Log gagal disimpan.');
+                    return redirect()->back()->with('error', 'Log gagal disimpan. db gagal');
                 }
             }
         } else {
@@ -242,10 +259,10 @@ class Log extends BaseController
                                 unlink($tempPath);
                                 return redirect()->to('log')->with('success', 'Log berhasil disimpan.');
                             } else {
-                                return redirect()->back()->with('error', 'Log gagal disimpan.');
+                                return redirect()->back()->with('error', 'Log gagal disimpan. db gagal');
                             }
                         } else {
-                            return redirect()->back()->with('error', 'Log gagal disimpan.');
+                            return redirect()->back()->with('error', 'Log gagal disimpan.'.$file->getErrorString());
                         }
                     } else {
                         return redirect()->back()->with('error', 'Gagal menyimpan Log. Tidak sesuai waktu');
@@ -269,10 +286,10 @@ class Log extends BaseController
                             unlink($tempPath);
                             return redirect()->to('log')->with('success', 'Log berhasil disimpan.');
                         } else {
-                            return redirect()->back()->with('error', 'Log gagal disimpan.');
+                            return redirect()->back()->with('error', 'Log gagal disimpan. 4');
                         }
                     } else {
-                        return redirect()->back()->with('error', 'Log gagal disimpan.');
+                        return redirect()->back()->with('error', 'Log gagal disimpan.'.$file->getErrorString());
                     }
                 }
             } else {

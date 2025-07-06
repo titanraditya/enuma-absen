@@ -426,6 +426,19 @@ class Attendance extends BaseController
         foreach($attendance as $attendance){
             $data['tanggal'] = date('Y-m-d',strtotime($attendance['created_at']));
             $data['status'] = $attendance['status'];
+            $keterangan = [];
+
+            if ($attendance['terlambat'] == '1') {
+                $keterangan[] = "Terlambat";
+            }
+            if ($attendance['pulcep'] == '1') {
+                $keterangan[] = "Pulang Cepat";
+            }
+            if ($attendance['lembur'] == '1') {
+                $keterangan[] = "Lembur";
+            }
+
+            $data['keterangan'] = !empty($keterangan) ? implode(", ", $keterangan) : "-";
             $data['id'] = $attendance['id'];
 
             

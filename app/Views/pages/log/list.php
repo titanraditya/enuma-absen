@@ -91,6 +91,7 @@
                                 <tr>
                                     <th width="100px">Tanggal</th>
                                     <th width="100px">Status</th>
+                                    <th width="100px">Keterangan</th>
                                     <th width="200px">Waktu</th>
                                     <th width="150px">Aksi</th>
                                 </tr>
@@ -552,6 +553,7 @@
                 columns: [
                     {data:'tanggal'},
                     {data:'status'},
+                    {data:'keterangan'},
                     {data:'waktu'},
                     {data:'id',
                        render: function (data, type, row, meta) {

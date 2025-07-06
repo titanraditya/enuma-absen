@@ -68,6 +68,7 @@ class User extends BaseController
                     COALESCE(MAX(CASE WHEN DATE(created_at) = CURDATE() THEN status END),'Tidak Hadir') AS status_today")
             ->where('user_id', $id)
             ->groupBy('user_id')
+            ->orderBy('user_id')
             ->first();
 
         return view('pages/user/show',$data);
