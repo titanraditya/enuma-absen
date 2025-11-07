@@ -19,6 +19,7 @@ $routes->group('log', ['filter' => 'user-pengawas'], function($routes) {
     $routes->get('/', 'Log::index');
     $routes->post('/', 'Log::store');
     $routes->get('getdata', 'Log::getData');
+    $routes->post('edit', 'Log::edit');
 });
 $routes->get('log/getdata/(:any)', 'Log::getDataId/$1',['filter' => 'auth']);
 

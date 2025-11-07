@@ -249,6 +249,56 @@
       </div>
     </div>
   </div>
+  <div class="modal fade" id="editModal">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="overlay" id="overlaylogedit">
+            <i class="fas fa-2x fa-sync fa-spin"></i>
+        </div>
+        <div class="modal-header">
+          <h4 class="modal-title"><i class="fas fa-pen mr-2"></i> Edit Log</h4>
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+        <div class="modal-body">
+          <div id='edit_log'>
+            <table>
+              <tr>
+                <th width="100px">Tanggal</th>
+                <td> : </td>
+                <td id="date-edit"></td>
+              </tr>
+              <tr>
+                <th>Status</th>
+                <td> : </td>
+                <td id="status-edit"></td>
+              </tr>
+            </table>
+            <form method="post" action="<?=base_url()?>log/edit" id="form-editlog" enctype="multipart/form-data">
+              <?=csrf_field();?>
+              <input type="hidden" name="id" id="id_edit">
+              <div class="form-group">
+                  <label>Aktivitas</label>
+                  <input type="text" id="activity_edit" name="activity" class="form-control" autocomplete="off">
+                  <div class="invalid-feedback" id="err-activity-edit">
+                  </div>
+              </div>
+              <label>Deskripsi</label>
+              <textarea id="description_edit" name="description" class="form-control"></textarea>
+            </form>
+          </div>
+          <div id='error_edit'>
+            <p id="erroredit_msg" class="text-center mt-2"></p>
+          </div>
+        </div>
+        <div class="modal-footer justify-content-between">
+          <button type="button" class="btn btn-default" data-dismiss="modal">Batal</button>
+          <button type="button" class="btn btn-info" id="btn-submit" onclick="editlogSubmit()">Simpan</button>
+        </div>
+      </div>
+    </div>
+  </div>
 <?php $this->endSection(); ?>
 
 <?php $this->section('js'); ?>
@@ -315,6 +365,68 @@
                     $('#overlayshowlog').hide();
                 }
             });
+        }
+
+        function editLog(id) {
+            $('#editModal').modal();
+            $.ajax({
+                url: "<?=base_url()?>/log/getdata/"+id,
+                type: "GET",
+                dataType: "json",
+                success: function(response) {
+                    activity = document.getElementById("activity_edit");
+                    $('#error_edit').hide();
+                    $('#edit_log').show();
+                    $('#date-edit').html(response.date);
+                    $('#status-edit').html(response.status_id);
+                    $('#activity_edit').val(response.activity);
+                    $('#id_edit').val(response.id);
+                    $('#description_edit').html(response.description);
+                    $('#btn-submit').show();
+                    $('#overlaylogedit').hide();
+                    if(activity.classList.contains('is-invalid')) {
+                        activity.classList.remove('is-invalid');
+                    }
+                },
+                error: function(xhr, status, error) {
+                    if (status === 'timeout') {
+                        $('#erroredit_msg').html('TimeoutError: Permintaan melebihi waktu yang ditentukan.');;
+                    } else if (status === 'abort') {
+                        $('#erroredit_msg').html('AbortError: Permintaan dibatalkan.');
+                    } else if (status === 'parsererror') {
+                        $('#erroredit_msg').html('ParseError: Gagal mem-parsing data JSON.');
+                    } else if (xhr.status === 0) {
+                        $('#erroredit_msg').html('NetworkError: Tidak dapat terhubung ke server. Periksa koneksi internet.');
+                    } else if (xhr.status >= 400 && xhr.status < 600) {
+                        $('#erroredit_msg').html(`ServerError (Status ${xhr.status}): ${error}`);
+                    } else {
+                        $('#erroredit_msg').html(`UnexpectedError: ${status} - ${error}`);
+                    }
+                    $('#error_edit').show();
+                    $('#edit_log').hide();
+                    $('#btn-submit').hide();
+                    $('#overlaylogedit').hide();
+                },
+                timeout: 5000
+            });
+        }
+        
+        function editlogSubmit()
+        {
+            activity = document.getElementById("activity_edit");
+            if (activity.value == "") {
+                if(!activity.classList.contains('is-invalid')) {
+                    activity.classList.add('is-invalid');
+                }
+                $('#err-activity-edit').html("Aktivitas belum di isi");
+            } else {
+                if(activity.classList.contains('is-invalid')) {
+                    activity.classList.remove('is-invalid');
+                }
+            }
+            if(activity.value != "") {
+                document.getElementById('form-editlog').submit();
+            }
         }
 
         var Toast = Swal.mixin({
@@ -432,7 +544,7 @@
                     {data:'waktu'},
                     {data:'id',
                        render: function (data, type, row, meta) {
-                            return '<a class="btn btn-sm btn-info text-white" onClick="showLog('+"'"+data+"'"+')"><i class="fas fa-eye"></i> Lihat Log</a>';
+                            return '<a class="btn btn-sm btn-info text-white" onClick="showLog('+"'"+data+"'"+')"><i class="fas fa-eye"></i> Lihat Log</a> <a class="btn btn-sm btn-secondary text-black" onClick="editLog('+"'"+data+"'"+')"><i class="fas fa-edit"></i> Edit Log</a>';
                         }   
                     },
                 ],

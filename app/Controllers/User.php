@@ -74,6 +74,33 @@ class User extends BaseController
         return view('pages/user/show',$data);
     }
 
+    public function editlog()
+    {
+        if (session('user_role') == 'user') {
+            throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound();
+        }
+
+        $id = $this->request->getPost('id');        
+
+        $existing = $this->attendanceModel
+            ->select('id, activity, description, created_at, image, status, user_id')
+            ->where('id', $id)
+            ->first();
+
+        if(!$existing) {
+            throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound();
+        }
+        $data = [
+            'activity' => $this->request->getPost('activity'),
+            'description' => $this->request->getPost('description'),
+        ];
+        if ($this->attendanceModel->update($id, $data)) {
+            return redirect()->to('log')->with('success', 'Log berhasil disimpan.');
+        } else {
+            return redirect()->back()->with('error', 'Log gagal disimpan. db gagal');
+        }
+    }
+
     public function add()
     {
         $data['title'] = "Tambah Anggota";

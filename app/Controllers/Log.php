@@ -298,6 +298,34 @@ class Log extends BaseController
         }
 
     }
+
+    public function edit()
+    {
+        $id_user = session('user_id');
+        $id = $this->request->getPost('id');
+        $existing = $this->attendanceModel
+            ->select('id, activity, description, created_at, image, status, user_id')
+            ->where('id', $id)
+            ->first();
+        if(!$existing) {
+            throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound();
+        }
+        if($existing['user_id'] != $id_user) {
+            if (session('user_role') == 'user') {
+                throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound();
+            }
+        }
+        $data = [
+            'activity' => $this->request->getPost('activity'),
+            'description' => $this->request->getPost('description'),
+        ];
+        if ($this->attendanceModel->update($id, $data)) {
+            return redirect()->back()->with('success', 'Log berhasil disimpan.');
+        } else {
+            return redirect()->back()->with('error', 'Log gagal disimpan. db gagal');
+        }
+    }
+
     private function convertAnyToJpg($sourcePath, $targetPath, $quality = 50)
     {
         $info = getimagesize($sourcePath);
