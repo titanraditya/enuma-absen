@@ -69,6 +69,7 @@
             <div class="card">
                 <div class="card-header bg-lightblue">
                     <h2 class="card-title">Kehadiran dan Laporan Anggota</h2>
+                    <button onclick="addLog()" class="btn btn-sm btn-outline-primary bg-white float-right"><i class="fas fa-plus"></i> Tambah</button>
                 </div>
                 <div class="card-body">
                     <div class="card card-body">
@@ -127,7 +128,7 @@
 <?php $this->endSection(); ?>
 
 <?php $this->section('modal'); ?>
-<div class="modal fade" id="ijinModal">
+  <div class="modal fade" id="ijinModal">
     <div class="modal-dialog">
       <div class="modal-content">
         <div class="modal-header">
@@ -145,6 +146,29 @@
             <?=csrf_field();?>
             <input type='hidden' name="id" value="<?=esc($user['id'])?>">
             <button type="submit" class="btn btn-info">Ya</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="modal fade" id="deleteModal">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h4 class="modal-title" id="title-ijin">Hapus Absen?</h4>
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+        <div class="modal-body">
+          <p id='content-delete'></p>
+        </div>
+        <div class="modal-footer justify-content-between">
+          <button type="button" class="btn btn-default" data-dismiss="modal">Batal</button>
+          <form method="post" action="<?=base_url()?>category/user/logdelete" id="form-ijin">
+            <?=csrf_field();?>
+            <input type='hidden' name="id" id="hapuslog">
+            <button type="submit" class="btn btn-danger">Ya</button>
           </form>
         </div>
       </div>
@@ -299,6 +323,63 @@
       </div>
     </div>
   </div>
+  <div class="modal fade" id="addLogModal">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <!-- <div class="overlay" id="overlaylogedit">
+            <i class="fas fa-2x fa-sync fa-spin"></i>
+        </div> -->
+        <div class="modal-header">
+          <h4 class="modal-title"><i class="fas fa-pen mr-2"></i> Tambah Log</h4>
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+        <div class="modal-body">
+          <div id='add_log'>
+            <form method="post" action="<?=base_url()?>category/user/addlog" id="form-addlog" enctype="multipart/form-data">
+              <?=csrf_field();?>
+              <input type="hidden" name="id" value="<?=$user['id']?>">
+              <div class="form-group">
+                <label>Tanggal</label>
+                <input type="date" class="form-control" name="date" id="date-add" required>
+                <div class="invalid-feedback" id="err-date-add">
+                </div>
+              </div>
+              <div class="form-group">
+                <label>Waktu</label>
+                <input type="time" class="form-control" name="time" id="time-add" required>
+                <div class="invalid-feedback" id="err-time-add">
+                </div>
+              </div>
+              <div class="form-group">
+                <label>Status</label>
+                <select class="form-control" name="status">
+                    <option value="Hadir">Hadir</option>
+                    <option value="Ijin">Ijin</option>
+                </select>
+              </div>
+              <div class="form-group">
+                  <label>Aktivitas</label>
+                  <input type="text" id="activity_edit" name="activity" class="form-control" autocomplete="off">
+                  <div class="invalid-feedback" id="err-activity-edit">
+                  </div>
+              </div>
+              <label>Deskripsi</label>
+              <textarea id="description_edit" name="description" class="form-control"></textarea>
+            </form>
+          </div>
+          <div id='error_edit'>
+            <p id="erroredit_msg" class="text-center mt-2"></p>
+          </div>
+        </div>
+        <div class="modal-footer justify-content-between">
+          <button type="button" class="btn btn-default" data-dismiss="modal">Batal</button>
+          <button type="button" class="btn btn-info" id="btn-submit" onclick="addLogSubmit()">Simpan</button>
+        </div>
+      </div>
+    </div>
+  </div>
 <?php $this->endSection(); ?>
 
 <?php $this->section('js'); ?>
@@ -319,6 +400,10 @@
                 $('#print_form').attr('action', '<?= base_url()?>attendance/printpdf');
                 document.getElementById('print_form').submit();
             }
+        }
+        
+        function addLog() {
+            $('#addLogModal').modal();
         }
 
         function showLog(id) {
@@ -409,6 +494,45 @@
                 },
                 timeout: 5000
             });
+        }
+
+        function deleteLog(id,tgl)
+        {
+            $('#deleteModal').modal();
+            $("#content-delete").html("Tanggal "+tgl+" akan dihapus. <br>Apakah anda yakin?");
+            $("#hapuslog").val(id);
+        }
+
+        function addLogSubmit()
+        {
+            date = document.getElementById("date-add");
+            time = document.getElementById("time-add");
+
+            if (date.value == "") {
+                if(!date.classList.contains('is-invalid')) {
+                    date.classList.add('is-invalid');
+                }
+                $('#err-date-add').html("Tanggal belum di isi");
+            } else {
+                if(date.classList.contains('is-invalid')) {
+                    date.classList.remove('is-invalid');
+                }
+            }
+
+            if (time.value == "") {
+                if(!time.classList.contains('is-invalid')) {
+                    time.classList.add('is-invalid');
+                }
+                $('#err-time-add').html("Waktu belum di isi");
+            } else {
+                if(time.classList.contains('is-invalid')) {
+                    time.classList.remove('is-invalid');
+                }
+            }
+
+            if(date.value != "" && time.value != "") {
+                document.getElementById('form-addlog').submit();
+            }
         }
         
         function editlogSubmit()
@@ -544,7 +668,9 @@
                     {data:'waktu'},
                     {data:'id',
                        render: function (data, type, row, meta) {
-                            return '<a class="btn btn-sm btn-info text-white" onClick="showLog('+"'"+data+"'"+')"><i class="fas fa-eye"></i> Lihat Log</a> <a class="btn btn-sm btn-secondary text-black" onClick="editLog('+"'"+data+"'"+')"><i class="fas fa-edit"></i> Edit Log</a>';
+                            const id = data;
+                            const tanggal = row.tanggal;
+                            return '<a class="btn btn-sm btn-info text-white" onClick="showLog('+"'"+data+"'"+')"><i class="fas fa-eye"></i> Lihat Log</a> <a class="btn btn-sm btn-secondary text-black" onClick="editLog('+"'"+data+"'"+')"><i class="fas fa-edit"></i> Edit Log</a> <a class="btn btn-sm btn-danger text-black" onClick="deleteLog('+"'"+id+"'"+','+"'"+tanggal+"'"+')"><i class="fas fa-trash"></i></a>';
                         }   
                     },
                 ],

@@ -34,6 +34,8 @@ $routes->group('category', ['filter' => 'admin-pengawas'], function($routes) {
     $routes->get('user/detail/(:any)', 'User::detail/$1');
     $routes->post('user/ijin', 'Attendance::ijin');
     $routes->post('user/cancelijin', 'Attendance::cancelijin');
+    $routes->post('user/addlog', 'Attendance::addlogs');
+    $routes->post('user/logdelete', 'Attendance::deletelog');
     $routes->get('edit/(:any)', 'Category::edit/$1');
     $routes->post('edit/(:any)', 'Category::editpost/$1');
     $routes->post('delete', 'Category::delete');

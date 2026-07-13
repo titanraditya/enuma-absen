@@ -30,6 +30,50 @@ class Attendance extends BaseController
         $this->scheduleModel = new ScheduleModel();
     }
 
+    public function addlogs()
+    {
+        $id = $this->request->getPost('id');
+        $date = $this->request->getPost('date');
+        $time = $this->request->getPost('time');
+        $status = $this->request->getPost('status');
+        $activity = $this->request->getPost('activity');
+        $description = $this->request->getPost('description');
+
+        $user = $this->userModel
+            ->find($id);
+
+        if(!$user) {
+            throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound();
+        }
+
+        $existingAttendance = $this->attendanceModel
+            ->where('user_id', $id)
+            ->like('checkin', $date, 'after')
+            ->first();
+    
+        if ($existingAttendance) {
+            session()->setFlashdata('error', 'Log Sudah Dibuat!');
+            return redirect()->back();
+        }
+
+        $data = [
+            'user_id' => $id,
+            'checkin'  => $date." ".$time,
+            'status' => $status,
+            'activity' => $activity,
+            'description' => $description,
+            'no_limit' => "1",
+        ];
+
+        if ($this->attendanceModel->insert($data)) {
+            session()->setFlashdata('success', 'Penambahan Log Berhasil!');
+            return redirect()->back();
+        } else {
+            session()->setFlashdata('error', 'Penambahan Log Gagal!');
+            return redirect()->back();
+        }
+    }
+
     public function printxls()
     {
         $tgl_awal = $this->request->getPost('min');
@@ -53,8 +97,8 @@ class Attendance extends BaseController
 
             $queryattendance = $this->attendanceModel
                 ->where('user_id', $id)
-                ->where('created_at >=',$start_date)
-                ->where('created_at <=',$end_date);
+                ->where('checkin >=',$start_date)
+                ->where('checkin <=',$end_date);
 
             if($tgl_awal == '') {
                 $tgl_awal = 'Awal';
@@ -69,9 +113,9 @@ class Attendance extends BaseController
         $order = $this->request->getPost('order_by');
 
         if($order == '1') {
-            $queryattendance = $queryattendance->orderBy('created_at','ASC');
+            $queryattendance = $queryattendance->orderBy('checkin','ASC');
         } else if($order == '2') {
-            $queryattendance = $queryattendance->orderBy('created_at','DESC');
+            $queryattendance = $queryattendance->orderBy('checkin','DESC');
         } else if($order == '3') {
             $queryattendance = $queryattendance->orderBy('status','ASC');
         } else if($order == '4') {
@@ -172,7 +216,7 @@ class Attendance extends BaseController
 
         $row = 10;
         foreach ($attendance as $attendance) {
-            $sheet->setCellValue("A$row", date('Y-m-d',strtotime($attendance['created_at'])));
+            $sheet->setCellValue("A$row", date('Y-m-d',strtotime($attendance['checkin'])));
             if($data_show == '1') {
                 $sheet->setCellValue("B$row", $attendance['status']);
     
@@ -182,7 +226,7 @@ class Attendance extends BaseController
                     if($attendance['no_limit'] == '1') {
                         $waktu = date('H:i:s',strtotime($attendance['checkin']));
                     } else {
-                        if($attendance['checkout'] == null && date('Y-m-d',strtotime($attendance['created_at'])) == date("Y-m-d")) {
+                        if($attendance['checkout'] == null && date('Y-m-d',strtotime($attendance['checkin'])) == date("Y-m-d")) {
                             $waktu = date('H:i:s',strtotime($attendance['checkin']))." - Belum Pulang";
                         } else if($attendance['checkout'] == null) {
                             $waktu = date('H:i:s',strtotime($attendance['checkin']))." - Tidak Absen";
@@ -204,7 +248,7 @@ class Attendance extends BaseController
                     if($attendance['no_limit'] == '1') {
                         $waktu = date('H:i:s',strtotime($attendance['checkin']));
                     } else {
-                        if($attendance['checkout'] == null && date('Y-m-d',strtotime($attendance['created_at'])) == date("Y-m-d")) {
+                        if($attendance['checkout'] == null && date('Y-m-d',strtotime($attendance['checkin'])) == date("Y-m-d")) {
                             $waktu = date('H:i:s',strtotime($attendance['checkin']))." - Belum Pulang";
                         } else if($attendance['checkout'] == null) {
                             $waktu = date('H:i:s',strtotime($attendance['checkin']))." - Tidak Absen";
@@ -259,8 +303,8 @@ class Attendance extends BaseController
 
             $queryattendance = $this->attendanceModel
                 ->where('user_id', $id)
-                ->where('created_at >=',$start_date)
-                ->where('created_at <=',$end_date);
+                ->where('checkin >=',$start_date)
+                ->where('checkin <=',$end_date);
 
             if($tgl_awal == '') {
                 $tgl_awal = 'Awal';
@@ -275,9 +319,9 @@ class Attendance extends BaseController
         $order = $this->request->getPost('order_by');
 
         if($order == '1') {
-            $queryattendance = $queryattendance->orderBy('created_at','ASC');
+            $queryattendance = $queryattendance->orderBy('checkin','ASC');
         } else if($order == '2') {
-            $queryattendance = $queryattendance->orderBy('created_at','DESC');
+            $queryattendance = $queryattendance->orderBy('checkin','DESC');
         } else if($order == '3') {
             $queryattendance = $queryattendance->orderBy('status','ASC');
         } else if($order == '4') {
@@ -358,6 +402,25 @@ class Attendance extends BaseController
         }
         
     }
+
+    public function deletelog()
+    {
+        $id = $this->request->getPost('id');
+        $attd = $this->attendanceModel
+            ->find($id);
+
+        if(!$attd) {
+            throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound();
+        }
+
+        if ($this->attendanceModel->delete($id)) {
+            session()->setFlashdata('success', 'Hapus Log Berhasil!');
+            return redirect()->back();
+        } else {
+            session()->setFlashdata('error', 'Hapus Log Gagal!');
+            return redirect()->back();
+        }
+    }
     
     public function cancelijin()
     {
@@ -400,7 +463,7 @@ class Attendance extends BaseController
         if ($date == 'all') {
             $attendance = $this->attendanceModel
                 ->where('user_id', $id)
-                ->orderBy('created_at','DESC')
+                ->orderBy('checkin','DESC')
                 ->findAll();
             
         } else {
@@ -417,14 +480,14 @@ class Attendance extends BaseController
 
             $attendance = $this->attendanceModel
                 ->where('user_id', $id)
-                ->where('created_at >=',$start_date)
-                ->where('created_at <=',$end_date)
-                ->orderBy('created_at','DESC')
+                ->where('checkin >=',$start_date)
+                ->where('checkin <=',$end_date)
+                ->orderBy('checkin','DESC')
                 ->findAll();
         }
         $output = array();
         foreach($attendance as $attendance){
-            $data['tanggal'] = date('Y-m-d',strtotime($attendance['created_at']));
+            $data['tanggal'] = date('Y-m-d',strtotime($attendance['checkin']));
             $data['status'] = $attendance['status'];
             $keterangan = [];
 

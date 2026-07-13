@@ -14,7 +14,7 @@
             .container {
                 max-width: 800px;
                 margin: 0 auto;
-                border: 1px solid #ddd;
+                border  : 1px solid #ddd;
                 padding: 20px;
                 box-shadow: 0 0 5px rgba(0,0,0,0.1);
             }
@@ -128,7 +128,7 @@
                         </tr>
                     <?php } else { foreach($attendance as $attendance) {?>
                     <tr>
-                        <td><?=esc(date('Y-m-d',strtotime($attendance['created_at'])))?></td>
+                        <td><?=esc(date('Y-m-d',strtotime($attendance['checkin'])))?></td>
                         <?php if($data_show == '1') {?>
                             <td><?=esc($attendance['status'])?></td>
                             <td><?php

@@ -73,7 +73,7 @@ class Category extends BaseController
         $user = $this->userModel
             ->select("users.*, COALESCE(attendances.status, 'Tidak Hadir') as status")
             ->where('category_id',$id)
-            ->join('attendances', 'users.id = attendances.user_id AND DATE(attendances.created_at) = CURDATE()', 'Left')
+            ->join('attendances', 'users.id = attendances.user_id AND DATE(attendances.checkin) = CURDATE()', 'Left')
             ->orderBy('name','asc')
             ->findAll();
 

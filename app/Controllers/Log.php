@@ -33,7 +33,7 @@ class Log extends BaseController
                     COUNT(CASE WHEN status = 'Hadir' THEN 1 END) AS count_hadir, 
                     COUNT(CASE WHEN status = 'Ijin' THEN 1 END) AS count_ijin, 
                     COUNT(CASE WHEN status = 'Hadir (Online)' THEN 1 END) AS count_online, 
-                    COALESCE(MAX(CASE WHEN DATE(created_at) = CURDATE() THEN status END),'Tidak Hadir') AS status_today")
+                    COALESCE(MAX(CASE WHEN DATE(checkin) = CURDATE() THEN status END),'Tidak Hadir') AS status_today")
             ->where('user_id', $id)
             ->groupBy('user_id')
             ->orderBy('user_id')
@@ -152,7 +152,7 @@ class Log extends BaseController
         $currentDate = date('Y-m-d');
 
         $existing = $this->attendanceModel
-            ->select('id, activity, description, created_at, image, status, user_id')
+            ->select('id, activity, description, created_at, image, status, user_id, checkin')
             ->where('id', $id)
             ->first();
 
@@ -163,7 +163,7 @@ class Log extends BaseController
             'activity' => $existing['activity'],
             'description' => $existing['description'],
             'image' => $existing['image'],
-            'date' => date('Y-m-d',strtotime($existing['created_at'])),
+            'date' => date('Y-m-d',strtotime($existing['checkin'])),
             'status' => 'success',
         ];
         return $this->response->setJSON($output);

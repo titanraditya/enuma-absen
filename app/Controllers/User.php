@@ -65,40 +65,13 @@ class User extends BaseController
                     COUNT(CASE WHEN status = 'Hadir' THEN 1 END) AS count_hadir, 
                     COUNT(CASE WHEN status = 'Ijin' THEN 1 END) AS count_ijin, 
                     COUNT(CASE WHEN status = 'Hadir (Online)' THEN 1 END) AS count_online, 
-                    COALESCE(MAX(CASE WHEN DATE(created_at) = CURDATE() THEN status END),'Tidak Hadir') AS status_today")
+                    COALESCE(MAX(CASE WHEN DATE(checkin) = CURDATE() THEN status END),'Tidak Hadir') AS status_today")
             ->where('user_id', $id)
             ->groupBy('user_id')
             ->orderBy('user_id')
             ->first();
 
         return view('pages/user/show',$data);
-    }
-
-    public function editlog()
-    {
-        if (session('user_role') == 'user') {
-            throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound();
-        }
-
-        $id = $this->request->getPost('id');        
-
-        $existing = $this->attendanceModel
-            ->select('id, activity, description, created_at, image, status, user_id')
-            ->where('id', $id)
-            ->first();
-
-        if(!$existing) {
-            throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound();
-        }
-        $data = [
-            'activity' => $this->request->getPost('activity'),
-            'description' => $this->request->getPost('description'),
-        ];
-        if ($this->attendanceModel->update($id, $data)) {
-            return redirect()->to('log')->with('success', 'Log berhasil disimpan.');
-        } else {
-            return redirect()->back()->with('error', 'Log gagal disimpan. db gagal');
-        }
     }
 
     public function add()
