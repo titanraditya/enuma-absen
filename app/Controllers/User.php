@@ -30,8 +30,7 @@ class User extends BaseController
             ->join('categories', 'categories.id = users.category_id', 'left')
             ->select('users.*, categories.name as category_name')
             ->where('categories.id !=', '1')
-            ->orderBy('ISNULL(users.id_fingerprint)', 'ASC')
-            ->orderBy('users.id_fingerprint','ASC')
+            ->orderBy('users.name', 'ASC')
             ->findAll();
         
         return view('pages/user/list',$data);
@@ -234,7 +233,7 @@ class User extends BaseController
         $id = $this->request->getPost('id');
         
         if($this->userModel->where('id',$id)->delete()) {
-            $path = "images/data/".$id;
+            $path = WRITEPATH . "uploads/logs/".$id;
             $this->deleteFolder($path);
             return redirect()->to('user')->with('success', 'User berhasil dihapus.');
         } else {

@@ -6,7 +6,7 @@ use App\Controllers\BaseController;
 use App\Models\AttendanceModel;
 use App\Models\UserModel;
 use App\Models\ScheduleModel;
-use App\Libraries\PdfGenerator;
+use App\Libraries\FpdfReport;
 use CodeIgniter\HTTP\ResponseInterface;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
@@ -343,11 +343,9 @@ class Attendance extends BaseController
         }
 
         $data['title'] = $title;
-        
-        $html = view('layout/laporan_layout',$data);
 
-        $pdf = new PdfGenerator();
-        $pdf->generate($html, $title.' - '.$user['name'].' ('.date('d-m-Y').').pdf', true);
+        $pdf = new FpdfReport();
+        $pdf->generate($data, $title.' - '.$user['name'].' ('.date('d-m-Y').').pdf');
         exit();
     }
 
@@ -391,8 +389,9 @@ class Attendance extends BaseController
         $data = [
             'user_id' => $id,
             'status'  => 'Ijin',
+            'checkin' => date('Y-m-d H:i:s'),
         ];
-    
+
         if ($this->attendanceModel->insert($data)) {
             session()->setFlashdata('success', 'Pemberian Ijin sukses');
             return redirect()->back();

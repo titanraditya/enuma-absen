@@ -17,12 +17,32 @@
                     <h4 class="card-title">Daftar User</h4>
                 </div>
                 <div class="card-body">
+                    <!-- Filter -->
+                    <div class="row mb-3">
+                        <div class="col-md-4 col-6 mb-2">
+                            <label for="filter-category" class="mb-1">Kategori</label>
+                            <select id="filter-category" class="form-control form-control-sm">
+                                <option value="">Semua Kategori</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4 col-6 mb-2">
+                            <label for="filter-status" class="mb-1">Status</label>
+                            <select id="filter-status" class="form-control form-control-sm">
+                                <option value="">Semua Status</option>
+                                <option value="Aktif">Aktif</option>
+                                <option value="Tidak Aktif">Tidak Aktif</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4 col-12 mb-2 d-flex align-items-end">
+                            <button id="filter-reset" class="btn btn-default btn-sm btn-block"><i class="fas fa-undo mr-1"></i> Reset Filter</button>
+                        </div>
+                    </div>
+
                     <div class="table-responsive">
-                        <table id="user-table" class="table table-bordered">
+                        <table id="user-table" class="table table-bordered table-hover">
                             <thead>
                                 <tr>
                                     <th>#</th>
-                                    <th>ID Fingerprint</th>
                                     <th>Nama</th>
                                     <th>Kategori</th>
                                     <th>Status</th>
@@ -33,10 +53,15 @@
                                 <?php foreach($user as $key => $user):?>
                                     <tr>
                                         <td><?=$key + 1?></td>
-                                        <td><?=esc($user['id_fingerprint'])?></td>
                                         <td><?=esc($user['name'])?></td>
                                         <td><?=esc($user['category_name'])?></td>
-                                        <td><?php if($user['active'] == 1) { echo "Aktif";} else { echo "Tidak Aktif";}?></td>
+                                        <td>
+                                            <?php if($user['active'] == 1): ?>
+                                                <span class="badge badge-success">Aktif</span>
+                                            <?php else: ?>
+                                                <span class="badge badge-secondary">Tidak Aktif</span>
+                                            <?php endif; ?>
+                                        </td>
                                         <td>
                                             <a href="<?=base_url()?>user/edit/<?=esc($user['id'])?>" class="btn btn-secondary btn-sm"><i class="fas fa-pen"></i> Ubah</a>
                                             <button onclick="deleteModal('<?=esc($user['id'])?>');" class="btn btn-danger btn-sm"><i class="fas fa-trash"></i> Hapus</button>
@@ -90,7 +115,41 @@
         }
 
         $(document).ready(function() {
-            $('#user-table').DataTable();
+            var table = $('#user-table').DataTable({
+                columnDefs: [
+                    { orderable: false, targets: [4] }
+                ],
+                language: {
+                    search: "Cari:",
+                    lengthMenu: "Tampilkan _MENU_ data",
+                    info: "Menampilkan _START_ - _END_ dari _TOTAL_ anggota",
+                    infoFiltered: "(difilter dari _MAX_ total anggota)",
+                    infoEmpty: "Tidak ada data",
+                    zeroRecords: "Tidak ada anggota yang cocok",
+                    paginate: { previous: "&laquo;", next: "&raquo;" }
+                }
+            });
+
+            // Isi dropdown kategori dari data tabel (unik, terurut)
+            table.column(2).data().unique().sort().each(function(value) {
+                $('#filter-category').append($('<option>', { value: value, text: value }));
+            });
+
+            // Filter kategori & status: exact match per kolom
+            $('#filter-category').on('change', function() {
+                var val = $.fn.dataTable.util.escapeRegex($(this).val());
+                table.column(2).search(val ? '^' + val + '$' : '', true, false).draw();
+            });
+
+            $('#filter-status').on('change', function() {
+                var val = $.fn.dataTable.util.escapeRegex($(this).val());
+                table.column(3).search(val ? '^\\s*' + val + '\\s*$' : '', true, false).draw();
+            });
+
+            $('#filter-reset').on('click', function() {
+                $('#filter-category, #filter-status').val('');
+                table.search('').columns().search('').draw();
+            });
         });
         var Toast = Swal.mixin({
         toast: true,

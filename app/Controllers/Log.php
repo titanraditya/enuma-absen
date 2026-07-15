@@ -190,17 +190,17 @@ class Log extends BaseController
                 $oldimage = $todayAttendance['image'];
                 $image = $this->request->getFile('image');
                 $originalName = $image->getRandomName();
-                $tempPath = 'images/data/temp/' . $originalName;
+                $tempPath = WRITEPATH . 'uploads/temp/' . $originalName;
                 $jpgName = pathinfo($originalName, PATHINFO_FILENAME) . '.jpg';
-                $jpgPath = 'images/data/'.$id.'/' . $jpgName;
+                $jpgPath = WRITEPATH . 'uploads/logs/'.$id.'/' . $jpgName;
                 $data['image'] = $jpgName;
-                $imagePath = 'images/data/temp/';
+                $imagePath = WRITEPATH . 'uploads/temp/';
                 $image->move($imagePath, $originalName);
                 $this->convertAnyToJpg($tempPath, $jpgPath);
                 unlink($tempPath);
                 if ($this->attendanceModel->update($todayAttendance['id'], $data)) {
-                    $path = "images/data/".$id.'/';
-                    if (file_exists($path.$oldimage)) {
+                    $path = WRITEPATH . 'uploads/logs/'.$id.'/';
+                    if ($oldimage && file_exists($path.$oldimage)) {
                         unlink($path.$oldimage);
                     }
                     return redirect()->to('log')->with('success', 'Log berhasil disimpan.');
@@ -244,16 +244,16 @@ class Log extends BaseController
                         if($this->request->getFile('image') && $this->request->getFile('image')->isValid()) {
                             $image = $this->request->getFile('image');
                             $originalName = $image->getRandomName();
-                            $tempPath = 'images/data/temp/' . $originalName;
+                            $tempPath = WRITEPATH . 'uploads/temp/' . $originalName;
                             $jpgName = pathinfo($originalName, PATHINFO_FILENAME) . '.jpg';
-                            $jpgPath = 'images/data/'.$id.'/' . $jpgName;
+                            $jpgPath = WRITEPATH . 'uploads/logs/'.$id.'/' . $jpgName;
                             $data['image'] = $jpgName;
                             if ($this->attendanceModel->insert($data)) {
-                                $imagePath = 'images/data/'.$id.'/';
+                                $imagePath = WRITEPATH . 'uploads/logs/'.$id.'/';
                                 if (!is_dir($imagePath)) {
                                     mkdir($imagePath, 0777, true);
                                 }
-                                $imagePath = 'images/data/temp/';
+                                $imagePath = WRITEPATH . 'uploads/temp/';
                                 $image->move($imagePath, $originalName);
                                 $this->convertAnyToJpg($tempPath, $jpgPath);
                                 unlink($tempPath);
@@ -271,16 +271,16 @@ class Log extends BaseController
                     if($this->request->getFile('image') && $this->request->getFile('image')->isValid()) {
                         $image = $this->request->getFile('image');
                         $originalName = $image->getRandomName();
-                        $tempPath = 'images/data/temp/' . $originalName;
+                        $tempPath = WRITEPATH . 'uploads/temp/' . $originalName;
                         $jpgName = pathinfo($originalName, PATHINFO_FILENAME) . '.jpg';
-                        $jpgPath = 'images/data/'.$id.'/' . $jpgName;
+                        $jpgPath = WRITEPATH . 'uploads/logs/'.$id.'/' . $jpgName;
                         $data['image'] = $jpgName;
                         if ($this->attendanceModel->insert($data)) {
-                            $imagePath = 'images/data/'.$id.'/';
+                            $imagePath = WRITEPATH . 'uploads/logs/'.$id.'/';
                             if (!is_dir($imagePath)) {
                                 mkdir($imagePath, 0777, true);
                             }
-                            $imagePath = 'images/data/temp/';
+                            $imagePath = WRITEPATH . 'uploads/temp/';
                             $image->move($imagePath, $originalName);
                             $this->convertAnyToJpg($tempPath, $jpgPath);
                             unlink($tempPath);
@@ -297,6 +297,29 @@ class Log extends BaseController
             }
         }
 
+    }
+
+    public function image($userId, $file)
+    {
+        if (session('user_role') == 'user' && session('user_id') != $userId) {
+            throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound();
+        }
+
+        if (!preg_match('/^[A-Za-z0-9_-]+$/', (string) $userId) || !preg_match('/^[A-Za-z0-9._-]+\.jpg$/', (string) $file)) {
+            throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound();
+        }
+
+        $path = WRITEPATH . 'uploads/logs/' . $userId . '/' . $file;
+
+        if (!is_file($path)) {
+            throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound();
+        }
+
+        return $this->response
+            ->setHeader('Content-Type', 'image/jpeg')
+            ->setHeader('Content-Length', (string) filesize($path))
+            ->setHeader('Cache-Control', 'private, max-age=3600')
+            ->setBody(file_get_contents($path));
     }
 
     public function edit()
@@ -328,6 +351,11 @@ class Log extends BaseController
 
     private function convertAnyToJpg($sourcePath, $targetPath, $quality = 50)
     {
+        $targetDir = dirname($targetPath);
+        if (!is_dir($targetDir)) {
+            mkdir($targetDir, 0777, true);
+        }
+
         $info = getimagesize($sourcePath);
         if (!$info) return false;
 

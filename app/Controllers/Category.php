@@ -29,8 +29,10 @@ class Category extends BaseController
 
         if(session('user_role') == 'admin') {
             $data['category'] = $this->categoryModel
-                ->select('categories.*, count(u.id) as total')
+                ->select("categories.*, COUNT(DISTINCT u.id) as total, GROUP_CONCAT(DISTINCT p.name ORDER BY p.name SEPARATOR ', ') as pengawas_names", false)
                 ->join('users u','categories.id = u.category_id','left')
+                ->join('subcategory_overseer so','so.category_id = categories.id','left')
+                ->join('users p','p.id = so.user_id','left')
                 ->where('categories.id !=', '1')
                 ->orderBy('categories.name', 'asc')
                 ->groupBy('categories.id')
@@ -60,6 +62,7 @@ class Category extends BaseController
             ->select('subcategory_overseer.*, users.id as user_id, users.name as name')
             ->join('users','users.id = subcategory_overseer.user_id')
             ->where('subcategory_overseer.category_id',$id)
+            ->orderBy('users.name', 'asc')
             ->findAll();
 
         if (!$category) {
@@ -117,6 +120,57 @@ class Category extends BaseController
         $data['jadwal1'] = $jadwal;
 
         return view('pages/category/show',$data);
+    }
+
+    public function logs($id)
+    {
+        $category = $this->categoryModel->find($id);
+
+        if (!$category || $id == '1') {
+            throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound();
+        }
+
+        $this->ensureCategoryAccess($id);
+
+        $db = \Config\Database::connect();
+        $logs = $db->query("
+            SELECT u.id AS member_id, u.name AS member_name,
+                   COALESCE(t.status, 'Tidak Hadir') AS status_today,
+                   a.*
+            FROM users u
+            LEFT JOIN attendances t ON t.user_id = u.id AND DATE(t.checkin) = CURDATE()
+            LEFT JOIN attendances a ON a.id = (
+                SELECT a2.id FROM attendances a2
+                WHERE a2.user_id = u.id
+                ORDER BY a2.checkin DESC, a2.id DESC
+                LIMIT 1
+            )
+            WHERE u.category_id = ?
+            ORDER BY (a.checkin IS NULL) ASC, a.checkin DESC, u.name ASC
+        ", [$id])->getResultArray();
+
+        $data['title'] = 'Log Anggota - '.$category['name'];
+        $data['subtitle'] = "Grup";
+        $data['category'] = $category;
+        $data['logs'] = $logs;
+
+        return view('pages/category/logs',$data);
+    }
+
+    private function ensureCategoryAccess($id)
+    {
+        if (session('user_role') == 'admin') {
+            return;
+        }
+
+        $access = $this->subcategoryOverseerModel
+            ->where('user_id', session('user_id'))
+            ->where('category_id', $id)
+            ->first();
+
+        if (!$access) {
+            throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound();
+        }
     }
 
     public function add()

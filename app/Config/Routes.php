@@ -19,9 +19,10 @@ $routes->group('log', ['filter' => 'user-pengawas'], function($routes) {
     $routes->get('/', 'Log::index');
     $routes->post('/', 'Log::store');
     $routes->get('getdata', 'Log::getData');
-    $routes->post('edit', 'Log::edit');
 });
+$routes->post('log/edit', 'Log::edit', ['filter' => 'auth']);
 $routes->get('log/getdata/(:any)', 'Log::getDataId/$1',['filter' => 'auth']);
+$routes->get('log/image/(:segment)/(:segment)', 'Log::image/$1/$2',['filter' => 'auth']);
 
 //category
 $routes->group('category', ['filter' => 'admin-pengawas'], function($routes) {
@@ -31,6 +32,7 @@ $routes->group('category', ['filter' => 'admin-pengawas'], function($routes) {
     $routes->post('addpengawas', 'Category::addpengawas');
     $routes->post('deletepengawas', 'Category::deletepengawas');
     $routes->get('detail/(:any)', 'Category::detail/$1');
+    $routes->get('logs/(:segment)', 'Category::logs/$1');
     $routes->get('user/detail/(:any)', 'User::detail/$1');
     $routes->post('user/ijin', 'Attendance::ijin');
     $routes->post('user/cancelijin', 'Attendance::cancelijin');

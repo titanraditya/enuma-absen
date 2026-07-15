@@ -6,7 +6,7 @@
   <title>Absensi Enuma Technology</title>
 
   <!-- Google Font -->
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
   <!-- Font Awesome -->
   <link rel="stylesheet" href="<?=base_url()?>assets/plugins/fontawesome-free/css/all.min.css">
   <link rel="icon" type="image/x-icon" href="<?=base_url()?>enumatech.png">
@@ -23,7 +23,8 @@
     * { box-sizing: border-box; margin: 0; padding: 0; }
 
     body {
-      font-family: 'Plus Jakarta Sans', -apple-system, sans-serif;
+      font-family: 'Inter', -apple-system, sans-serif;
+      letter-spacing: -.006em;
       color: var(--ink);
       min-height: 100vh;
       display: flex;
@@ -228,7 +229,7 @@
 
       <?php if(session()->getFlashdata('error')): ?>
         <div class="alert-error">
-          <i class="fas fa-circle-exclamation"></i>
+          <i class="fas fa-exclamation-circle"></i>
           <span><?= session()->getFlashdata('error'); ?></span>
         </div>
       <?php endif; ?>

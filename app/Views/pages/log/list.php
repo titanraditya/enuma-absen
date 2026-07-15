@@ -4,89 +4,153 @@
     <link rel="stylesheet" href="<?=base_url()?>assets/plugins/datatables-bs4/css/dataTables.bootstrap4.min.css">
     <!-- <link rel="stylesheet" href="<?=base_url()?>assets/plugins/datatables/responsive.bootstrap4.css"/> -->
     <link rel="stylesheet" href="<?=base_url()?>assets/plugins/sweetalert2/sweetalert2.min.css">
+    <style>
+        .log-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 8px;
+            padding-bottom: 12px;
+            margin-bottom: 14px;
+            border-bottom: 1px solid var(--line);
+        }
+        .log-field-label {
+            display: block;
+            font-size: .7rem;
+            font-weight: 800;
+            letter-spacing: .06em;
+            text-transform: uppercase;
+            color: #97a2b0;
+            margin-bottom: 3px;
+        }
+        .log-desc { white-space: pre-line; }
+        .log-ss {
+            border-radius: 10px;
+            border: 1px solid var(--line);
+        }
+    </style>
 <?php $this->endSection(); ?>
 
 <?php $this->section('action-button'); ?>
-   
+
 <?php $this->endSection(); ?>
 
 <?php $this->section('content'); ?>
+    <?php
+        $statusToday = $attendancecount['status_today'] ?? 'Tidak Hadir';
+        $statusBadges = [
+            'Hadir'          => ['badge-success', 'fa-check-circle'],
+            'Hadir (Online)' => ['bg-teal', 'fa-laptop'],
+            'Ijin'           => ['badge-info', 'fa-info-circle'],
+        ];
+        [$statusClass, $statusIcon] = $statusBadges[$statusToday] ?? ['badge-danger', 'fa-times-circle'];
+    ?>
+    <?php if($statusToday == 'Tidak Hadir'): ?>
+        <div class="cta-banner">
+            <span class="cta-icon"><i class="fas fa-pen"></i></span>
+            <div class="cta-text">
+                <b>Kamu belum absen hari ini</b>
+                <span>Tulis log aktivitasmu sekarang untuk tercatat Hadir (Online).</span>
+            </div>
+            <button onclick="logModal();" class="btn btn-cta"><i class="fas fa-pen mr-1"></i> Tulis Log Sekarang</button>
+        </div>
+    <?php else: ?>
+        <div class="cta-banner cta-done">
+            <span class="cta-icon"><i class="fas fa-check"></i></span>
+            <div class="cta-text">
+                <b>Kamu sudah tercatat <?=esc($statusToday)?> hari ini</b>
+                <span>Kamu masih bisa menulis atau memperbarui log aktivitasmu.</span>
+            </div>
+            <button onclick="logModal();" class="btn btn-primary"><i class="fas fa-edit mr-1"></i> Edit Log Hari Ini</button>
+        </div>
+    <?php endif; ?>
     <div class="row">
-        <div class="col-md-6 col-12">
-            <div class="card">
-                <div class="card-body row">
-                    <div class="col-6">
-                        <h5>Status Kehadiran Hari Ini</h5>
-                        <?php if(!$attendancecount) { ?>
-                            <h4 class="text-bold text-danger">Tidak Hadir</h4>
-                        <?php } else { ?>
-                            <h4 class="text-bold <?php if($attendancecount['status_today']=='Hadir') { echo "text-success";} else if ($attendancecount['status_today']=='Ijin') {echo "text-info";} else if($attendancecount['status_today']=='Hadir (Online)') { echo "text-success";} else {echo "text-danger";}?>"><?=esc($attendancecount['status_today'])?></h4>
-                        <?php } ?>
-                    </div>
-                    <div class="col-6">
-                        <button onclick="logModal();" class="btn btn-success btn-lg mt-1"><i class="fas fa-pen"></i> Tulis log hari ini</button>
+        <div class="col-lg-3 col-md-6 col-12">
+            <div class="card stat-tile">
+                <div class="card-body">
+                    <span class="stat-icon"><i class="fas fa-user-clock"></i></span>
+                    <div>
+                        <span class="stat-label">Status hari ini</span>
+                        <span class="badge <?=$statusClass?> stat-badge"><i class="fas <?=$statusIcon?> mr-1"></i><?=esc($statusToday)?></span>
                     </div>
                 </div>
             </div>
         </div>
-        <div class="col-md-6 col-12">
-            <div class="card">
-                <div class="card-body row">
-                    <div class="col-lg-4 col-6 ">
-                        <h5>Total Kehadiran</h5>
-                        <h4 class="text-bold"><?php if($attendancecount) { echo esc($attendancecount['count_hadir']); } else { echo '0';}?></h4>
-                    </div>
-                    <div class="col-lg-4 col-6">
-                        <h5>Total Hadir Online</h5>
-                        <h4 class="text-bold"><?php if($attendancecount) { echo esc($attendancecount['count_online']); } else { echo '0';}?></h4>
-                    </div>
-                    <div class="col-lg-4 col-6">
-                        <h5>Total Izin</h5>
-                        <h4 class="text-bold"><?php if($attendancecount) { echo esc($attendancecount['count_ijin']); } else { echo '0';}?></h4>
+        <div class="col-lg-3 col-md-6 col-4">
+            <div class="card stat-tile">
+                <div class="card-body">
+                    <span class="stat-icon"><i class="fas fa-calendar-check"></i></span>
+                    <div>
+                        <span class="stat-label">Total hadir</span>
+                        <span class="stat-value"><?= $attendancecount ? esc($attendancecount['count_hadir']) : '0' ?></span>
                     </div>
                 </div>
             </div>
         </div>
+        <div class="col-lg-3 col-md-6 col-4">
+            <div class="card stat-tile">
+                <div class="card-body">
+                    <span class="stat-icon"><i class="fas fa-laptop"></i></span>
+                    <div>
+                        <span class="stat-label">Hadir online</span>
+                        <span class="stat-value"><?= $attendancecount ? esc($attendancecount['count_online']) : '0' ?></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6 col-4">
+            <div class="card stat-tile">
+                <div class="card-body">
+                    <span class="stat-icon"><i class="fas fa-envelope-open"></i></span>
+                    <div>
+                        <span class="stat-label">Total izin</span>
+                        <span class="stat-value"><?= $attendancecount ? esc($attendancecount['count_ijin']) : '0' ?></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="row">
         <div class="col-12">
             <div class="card">
                 <div class="card-header bg-lightblue">
-                    <h2 class="card-title">Kehadiran dan Laporan Anggota</h2>
+                    <h4 class="card-title">Kehadiran dan Laporan Anggota</h4>
                 </div>
                 <div class="card-body">
-                    <div class="card card-body">
-                        <div class="row">
-                            <div class="col-xl-3 col-4">
-                                <div class="form-group">
-                                    <label>Dari</label>
-                                    <input type="date" class="form-control" id="start_date" onchange="pilih_custom()">
-                                </div>
+                    <div class="row filter-bar mb-3">
+                        <div class="col-xl-3 col-md-4 col-6">
+                            <div class="form-group">
+                                <label>Dari</label>
+                                <input type="date" class="form-control" id="start_date" onchange="pilih_custom()">
                             </div>
-                            <div class="col-xl-3 col-4">
-                                <div class="form-group">
-                                    <label>Sampai</label>
-                                    <input type="date" class="form-control" id="end_date" onchange="pilih_custom()">
-                                </div>
+                        </div>
+                        <div class="col-xl-3 col-md-4 col-6">
+                            <div class="form-group">
+                                <label>Sampai</label>
+                                <input type="date" class="form-control" id="end_date" onchange="pilih_custom()">
                             </div>
-                            <div class="col-xl-3 col-4">
-                                <div class="form-group">
-                                    <label>Filter</label>
-                                    <select class="form-control" id="filter" onchange="filter()">
-                                        <option value="all">Semua</option>
-                                        <option value="7">7 Hari Terakhir</option>
-                                        <option value="30">30 Hari Terakhir</option>
-                                        <option value="thismonth">Bulan Ini</option>
-                                        <option value="lastmonth">Bulan Kemarin</option>
-                                        <option value="custom">Kustom</option>
-                                    </select>
-                                </div>
+                        </div>
+                        <div class="col-xl-3 col-md-4 col-6">
+                            <div class="form-group">
+                                <label>Periode</label>
+                                <select class="form-control" id="filter" onchange="filter()">
+                                    <option value="all">Semua</option>
+                                    <option value="7">7 Hari Terakhir</option>
+                                    <option value="30">30 Hari Terakhir</option>
+                                    <option value="thismonth">Bulan Ini</option>
+                                    <option value="lastmonth">Bulan Kemarin</option>
+                                    <option value="custom">Kustom</option>
+                                </select>
                             </div>
-                            <div class="col-xl-3 col-12">
-                                <label>&nbsp;</label><br>
-                                <button class='btn btn-secondary' onclick="printModal()"><i class="fas fa-print"></i> Print</button>
+                        </div>
+                        <div class="col-xl-3 col-md-12 col-6 d-flex align-items-end">
+                            <div class="form-group">
+                                <button class="btn btn-default" onclick="printModal()"><i class="fas fa-print mr-1"></i> Cetak Laporan</button>
+                            </div>
                         </div>
                     </div>
-                    <div class="table-responsive mt-4">
-                        <table id="tabel-absensi" class='table table-bordered'>
+                    <div class="table-responsive">
+                        <table id="tabel-absensi" class='table table-bordered table-hover'>
                             <thead>
                                 <tr>
                                     <th width="100px">Tanggal</th>
@@ -137,7 +201,7 @@
                     <img src="" id="image_ss" class="w-100 mb-2"></img>
                     <div class="custom-file">
                         <input type="file" class="custom-file-input" name="image" id="customFile" accept="image/jpg, image/jpeg, image/png">
-                        <label class="custom-file-label" for="customFile">Choose file</label>
+                        <label class="custom-file-label" for="customFile">Pilih file…</label>
                         <div class="invalid-feedback" id="err-upload">
                         </div>
                     </div>
@@ -150,7 +214,7 @@
         </div>
         <div class="modal-footer justify-content-between">
           <button type="button" class="btn btn-default" data-dismiss="modal">Batal</button>
-          <button type="button" class="btn btn-info" id="btn-submit" onclick="logSubmit()">Simpan</button>
+          <button type="button" class="btn btn-primary" id="btn-submit" onclick="logSubmit()">Simpan</button>
         </div>
       </div>
     </div>
@@ -169,29 +233,23 @@
         </div>
         <div class="modal-body">
           <div id='edit_log'>
-            <table>
-              <tr>
-                <th width="100px">Tanggal</th>
-                <td> : </td>
-                <td id="date-edit"></td>
-              </tr>
-              <tr>
-                <th>Status</th>
-                <td> : </td>
-                <td id="status-edit"></td>
-              </tr>
-            </table>
+            <div class="log-meta">
+                <span class="text-muted"><i class="far fa-calendar-alt mr-1"></i><span id="date-edit"></span></span>
+                <span id="status-edit"></span>
+            </div>
             <form method="post" action="<?=base_url()?>log/edit" id="form-editlog" enctype="multipart/form-data">
               <?=csrf_field();?>
               <input type="hidden" name="id" id="id_edit">
               <div class="form-group">
                   <label>Aktivitas</label>
-                  <input type="text" id="activity_edit" name="activity" class="form-control" autocomplete="off">
+                  <input type="text" id="activity_edit" name="activity" class="form-control" placeholder="Apa yang dikerjakan hari itu?" autocomplete="off">
                   <div class="invalid-feedback" id="err-activity-edit">
                   </div>
               </div>
-              <label>Deskripsi</label>
-              <textarea id="description_edit" name="description" class="form-control"></textarea>
+              <div class="form-group mb-0">
+                  <label>Deskripsi <span class="form-hint font-weight-normal">(opsional)</span></label>
+                  <textarea id="description_edit" name="description" rows="3" class="form-control" placeholder="Rincian aktivitas"></textarea>
+              </div>
             </form>
           </div>
           <div id='error_edit'>
@@ -200,7 +258,7 @@
         </div>
         <div class="modal-footer justify-content-between">
           <button type="button" class="btn btn-default" data-dismiss="modal">Batal</button>
-          <button type="button" class="btn btn-info" id="btn-submit" onclick="editlogSubmit()">Simpan</button>
+          <button type="button" class="btn btn-primary" id="btn-submit-edit" onclick="editlogSubmit()"><i class="fas fa-check mr-1"></i> Simpan Perubahan</button>
         </div>
       </div>
     </div>
@@ -219,29 +277,22 @@
         </div>
         <div class="modal-body">
             <div id='detail_log'>
-                <table>
-                    <tr>
-                        <th width="100px">Tanggal</th>
-                        <td> : </td>
-                        <td id="date-text"></td>
-                    </tr>
-                    <tr>
-                        <th>Status</th>
-                        <td> : </td>
-                        <td id="status-text"></td>
-                    </tr>
-                    <tr>
-                        <th>Aktivitas</th>
-                        <td> : </td>
-                        <td id="activity-text"></td>
-                    </tr>
-                    <tr>
-                        <th>Deskripsi</th>
-                        <td> : </td>
-                        <td id="description-text"></td>
-                    </tr>
-                </table>
-                <img src="" id="ss_image" class="w-100 mt-2">
+                <div class="log-meta">
+                    <span class="text-muted"><i class="far fa-calendar-alt mr-1"></i><span id="date-text"></span></span>
+                    <span id="status-text"></span>
+                </div>
+                <div class="mb-3">
+                    <span class="log-field-label">Aktivitas</span>
+                    <p class="font-weight-bold mb-0" id="activity-text"></p>
+                </div>
+                <div class="mb-3">
+                    <span class="log-field-label">Deskripsi</span>
+                    <p class="log-desc mb-0" id="description-text"></p>
+                </div>
+                <div id="ss_wrap">
+                    <span class="log-field-label">Screenshot Bukti</span>
+                    <img src="" id="ss_image" class="log-ss w-100">
+                </div>
             </div>
             <div id='error_log2'>
                 <p id="error_msg2" class="text-center"></p>
@@ -299,7 +350,7 @@
         </div>
         <div class="modal-footer justify-content-between">
           <button type="button" class="btn btn-default" data-dismiss="modal">Batal</button>
-          <button type="button" onclick="print()" class="btn btn-info"><i class="fas fa-print"></i> Print</button>
+          <button type="button" onclick="print()" class="btn btn-primary"><i class="fas fa-print mr-1"></i> Cetak</button>
         </div>
       </div>
     </div>
@@ -343,12 +394,12 @@
                     activity = document.getElementById("activity_edit");
                     $('#error_edit').hide();
                     $('#edit_log').show();
-                    $('#date-edit').html(response.date);
-                    $('#status-edit').html(response.status_id);
+                    $('#date-edit').text(response.date);
+                    $('#status-edit').html(renderStatus(response.status_id));
                     $('#activity_edit').val(response.activity);
                     $('#id_edit').val(response.id);
-                    $('#description_edit').html(response.description);
-                    $('#btn-submit').show();
+                    $('#description_edit').val(response.description);
+                    $('#btn-submit-edit').show();
                     $('#overlaylogedit').hide();
                     if(activity.classList.contains('is-invalid')) {
                         activity.classList.remove('is-invalid');
@@ -370,7 +421,7 @@
                     }
                     $('#error_edit').show();
                     $('#edit_log').hide();
-                    $('#btn-submit').hide();
+                    $('#btn-submit-edit').hide();
                     $('#overlaylogedit').hide();
                 },
                 timeout: 5000
@@ -387,15 +438,15 @@
                 success: function(response) {
                     $('#error_log2').hide();
                     $('#detail_log').show();
-                    $('#date-text').html(response.date);
-                    $('#status-text').html(response.status_id);
-                    $('#activity-text').html(response.activity);
-                    $('#description-text').html(response.description);
-                    if(response.image != '') {
-                        $("#ss_image").attr("src","<?=base_url()?>images/data/"+response.user_id+"/"+response.image);
-                        $('#ss_image').show();
+                    $('#date-text').text(response.date);
+                    $('#status-text').html(renderStatus(response.status_id));
+                    $('#activity-text').text(response.activity || '-');
+                    $('#description-text').text(response.description || '-');
+                    if(response.image != '' && response.image != null) {
+                        $("#ss_image").attr("src","<?=base_url()?>log/image/"+response.user_id+"/"+response.image);
+                        $('#ss_wrap').show();
                     } else {
-                        $('#ss_image').hide();
+                        $('#ss_wrap').hide();
                     }
                     $('#btn-submit').show();
                     $('#overlayshowlog').hide();
@@ -541,7 +592,7 @@
                         if(response.image != "") {
                             preventabsenimages = false;
                             thereisimage = true;
-                            $("#image_ss").attr("src","<?=base_url()?>images/data/"+response.user_id+"/"+response.image);
+                            $("#image_ss").attr("src","<?=base_url()?>log/image/"+response.user_id+"/"+response.image);
                             $('#image_ss').show();
                         } else {
                             preventabsenimages = true;
@@ -653,24 +704,59 @@
             $('#tabel-absensi').DataTable().ajax.url("<?= base_url()?>attendance/data/<?=esc($user['id'])?>/"+start_date+':'+end_date).load();
         }
 
+        function renderStatus(data) {
+            if (data === 'Hadir') {
+                return '<span class="badge badge-success"><i class="fas fa-check-circle mr-1"></i>Hadir</span>';
+            } else if (data === 'Hadir (Online)') {
+                return '<span class="badge bg-teal"><i class="fas fa-laptop mr-1"></i>Hadir (Online)</span>';
+            } else if (data === 'Ijin') {
+                return '<span class="badge badge-info"><i class="fas fa-info-circle mr-1"></i>Ijin</span>';
+            }
+            return '<span class="badge badge-secondary">' + data + '</span>';
+        }
+
+        function renderKeterangan(data) {
+            if (!data || data === '-') {
+                return '<span class="text-muted">-</span>';
+            }
+            var map = {
+                'Terlambat': 'bg-warning',
+                'Pulang Cepat': 'bg-orange',
+                'Lembur': 'bg-purple'
+            };
+            return data.split(', ').map(function(item) {
+                return '<span class="badge ' + (map[item] || 'badge-secondary') + ' mr-1">' + item + '</span>';
+            }).join('');
+        }
+
         $(document).ready(function() {
             $('#tabel-absensi').DataTable({
                 processing: true,
                 order: [[0, 'desc']],
                 searching: false,
+                language: {
+                    processing: "Memuat...",
+                    lengthMenu: "Tampilkan _MENU_ data",
+                    info: "Menampilkan _START_ - _END_ dari _TOTAL_ data",
+                    infoEmpty: "Tidak ada data",
+                    zeroRecords: "Tidak ada data pada periode ini",
+                    emptyTable: "Belum ada data absensi",
+                    paginate: { previous: "&laquo;", next: "&raquo;" }
+                },
                 ajax: {
                     url: '<?= base_url()?>attendance/data/<?=esc($user['id'])?>/all',
                     dataSrc: ''
                 },
                 columns: [
                     {data:'tanggal'},
-                    {data:'status'},
-                    {data:'keterangan'},
+                    {data:'status', render: renderStatus},
+                    {data:'keterangan', render: renderKeterangan},
                     {data:'waktu'},
                     {data:'id',
+                       orderable: false,
                        render: function (data, type, row, meta) {
-                            return '<a class="btn btn-sm btn-info text-white" onClick="showLog('+"'"+data+"'"+')"><i class="fas fa-eye"></i> Lihat Log</a> <a class="btn btn-sm btn-secondary text-black" onClick="editLog('+"'"+data+"'"+')"><i class="fas fa-edit"></i> Edit Log</a>';
-                        }   
+                            return '<a class="btn btn-sm btn-info text-white" onClick="showLog('+"'"+data+"'"+')"><i class="fas fa-eye"></i> Lihat</a> <a class="btn btn-sm btn-secondary" onClick="editLog('+"'"+data+"'"+')"><i class="fas fa-edit"></i> Edit</a>';
+                        }
                     },
                 ],
             });
