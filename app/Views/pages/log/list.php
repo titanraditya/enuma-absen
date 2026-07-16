@@ -76,39 +76,26 @@
                 </div>
             </div>
         </div>
+        <?php
+            $statTiles = [
+                ['fa-calendar-check', 'Total hadir',  'count_hadir'],
+                ['fa-laptop',         'Hadir online', 'count_online'],
+                ['fa-envelope-open',  'Total izin',   'count_ijin'],
+            ];
+        ?>
+        <?php foreach ($statTiles as [$tileIcon, $tileLabel, $tileKey]): ?>
         <div class="col-lg-3 col-md-6 col-4">
             <div class="card stat-tile">
                 <div class="card-body">
-                    <span class="stat-icon"><i class="fas fa-calendar-check"></i></span>
+                    <span class="stat-icon"><i class="fas <?=$tileIcon?>"></i></span>
                     <div>
-                        <span class="stat-label">Total hadir</span>
-                        <span class="stat-value"><?= $attendancecount ? esc($attendancecount['count_hadir']) : '0' ?></span>
+                        <span class="stat-label"><?=$tileLabel?></span>
+                        <span class="stat-value"><?= esc($attendancecount[$tileKey] ?? 0) ?></span>
                     </div>
                 </div>
             </div>
         </div>
-        <div class="col-lg-3 col-md-6 col-4">
-            <div class="card stat-tile">
-                <div class="card-body">
-                    <span class="stat-icon"><i class="fas fa-laptop"></i></span>
-                    <div>
-                        <span class="stat-label">Hadir online</span>
-                        <span class="stat-value"><?= $attendancecount ? esc($attendancecount['count_online']) : '0' ?></span>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="col-lg-3 col-md-6 col-4">
-            <div class="card stat-tile">
-                <div class="card-body">
-                    <span class="stat-icon"><i class="fas fa-envelope-open"></i></span>
-                    <div>
-                        <span class="stat-label">Total izin</span>
-                        <span class="stat-value"><?= $attendancecount ? esc($attendancecount['count_ijin']) : '0' ?></span>
-                    </div>
-                </div>
-            </div>
-        </div>
+        <?php endforeach; ?>
     </div>
     <div class="row">
         <div class="col-12">
@@ -270,7 +257,7 @@
             <i class="fas fa-2x fa-sync fa-spin"></i>
         </div>
         <div class="modal-header">
-          <h4 class="modal-title" id="title-ijin"><i class="fas fa-info mr-2"></i> Detail Log</h4>
+          <h4 class="modal-title"><i class="fas fa-info mr-2"></i> Detail Log</h4>
           <button type="button" class="close" data-dismiss="modal" aria-label="Close">
             <span aria-hidden="true">&times;</span>
           </button>
@@ -308,7 +295,7 @@
     <div class="modal-dialog">
       <div class="modal-content">
         <div class="modal-header">
-          <h4 class="modal-title" id="title-ijin"><i class="fas fa-print"></i> Pengaturan Cetak</h4>
+          <h4 class="modal-title"><i class="fas fa-print"></i> Pengaturan Cetak</h4>
           <button type="button" class="close" data-dismiss="modal" aria-label="Close">
             <span aria-hidden="true">&times;</span>
           </button>
@@ -327,7 +314,7 @@
                 <select name="order_by" class="form-control">
                     <option value="1">Tanggal - ASC</option>
                     <option value="2">Tanggal - DESC</option>
-                    <option value="4">Status - ASC</option>
+                    <option value="3">Status - ASC</option>
                     <option value="4">Status - DESC</option>
                 </select>
             </div>
@@ -363,124 +350,286 @@
     <script src="<?=base_url()?>assets/plugins/sweetalert2/sweetalert2.min.js"></script>
     <script src="<?=base_url()?>assets/plugins/bs-custom-file-input/bs-custom-file-input.min.js"></script>
     <script>
-        var absenonline;
-        var preventabsenimages;
-        var thereisimage;
-        $(function () {
-            bsCustomFileInput.init();
-        });
+        const BASE_URL = '<?= base_url() ?>';
+        const ATTENDANCE_DATA_URL = BASE_URL + 'attendance/data/<?= esc($user['id']) ?>/';
+        const LOG_IMAGE_URL = BASE_URL + 'log/image/';
+
+        const STATUS_BADGES = {
+            'Hadir':          ['badge-success', 'fa-check-circle'],
+            'Hadir (Online)': ['bg-teal', 'fa-laptop'],
+            'Ijin':           ['badge-info', 'fa-info-circle']
+        };
+
+        const KETERANGAN_BADGES = {
+            'Terlambat':    'bg-warning',
+            'Pulang Cepat': 'bg-orange',
+            'Lembur':       'bg-purple'
+        };
+
+        // Status absen hari ini, diisi ulang setiap logModal() dibuka
+        let absenonline = false;
+        let preventabsenimages = false;
+
+        // ---------- Helper ----------
+
+        function fmtDate(date) {
+            return date.toISOString().split('T')[0];
+        }
+
+        function ajaxErrorMessage(xhr, status, error) {
+            if (status === 'timeout')     return 'TimeoutError: Permintaan melebihi waktu yang ditentukan.';
+            if (status === 'abort')       return 'AbortError: Permintaan dibatalkan.';
+            if (status === 'parsererror') return 'ParseError: Gagal mem-parsing data JSON.';
+            if (xhr.status === 0)         return 'NetworkError: Tidak dapat terhubung ke server. Periksa koneksi internet.';
+            if (xhr.status >= 400 && xhr.status < 600) return `ServerError (Status ${xhr.status}): ${error}`;
+            return `UnexpectedError: ${status} - ${error}`;
+        }
+
+        function fetchLog(id, onSuccess, onError) {
+            $.ajax({
+                url: BASE_URL + 'log/getdata' + (id ? '/' + id : ''),
+                type: 'GET',
+                dataType: 'json',
+                timeout: 5000,
+                success: onSuccess,
+                error: onError
+            });
+        }
+
+        function setFieldError(el, errSelector, message) {
+            el.classList.toggle('is-invalid', message !== '');
+            $(errSelector).html(message);
+        }
+
+        function renderStatus(status) {
+            const badge = STATUS_BADGES[status];
+            if (!badge) {
+                return '<span class="badge badge-secondary">' + status + '</span>';
+            }
+            return '<span class="badge ' + badge[0] + '"><i class="fas ' + badge[1] + ' mr-1"></i>' + status + '</span>';
+        }
+
+        function renderKeterangan(data) {
+            if (!data || data === '-') {
+                return '<span class="text-muted">-</span>';
+            }
+            return data.split(', ').map(function (item) {
+                return '<span class="badge ' + (KETERANGAN_BADGES[item] || 'badge-secondary') + ' mr-1">' + item + '</span>';
+            }).join('');
+        }
+
+        // ---------- Modal detail log ----------
+
+        function showLog(id) {
+            $('#overlayshowlog').show();
+            $('#showLogModal').modal();
+            fetchLog(id, function (response) {
+                $('#error_log2').hide();
+                $('#detail_log').show();
+                $('#date-text').text(response.date);
+                $('#status-text').html(renderStatus(response.status_id));
+                $('#activity-text').text(response.activity || '-');
+                $('#description-text').text(response.description || '-');
+                if (response.image) {
+                    $('#ss_image').attr('src', LOG_IMAGE_URL + response.user_id + '/' + response.image);
+                    $('#ss_wrap').show();
+                } else {
+                    $('#ss_wrap').hide();
+                }
+                $('#overlayshowlog').hide();
+            }, function (xhr, status, error) {
+                $('#error_msg2').html(ajaxErrorMessage(xhr, status, error));
+                $('#error_log2').show();
+                $('#detail_log').hide();
+                $('#overlayshowlog').hide();
+            });
+        }
+
+        // ---------- Modal edit log ----------
+
+        function editLog(id) {
+            $('#overlaylogedit').show();
+            $('#editModal').modal();
+            fetchLog(id, function (response) {
+                $('#error_edit').hide();
+                $('#edit_log').show();
+                $('#date-edit').text(response.date);
+                $('#status-edit').html(renderStatus(response.status_id));
+                $('#id_edit').val(response.id);
+                $('#activity_edit').val(response.activity);
+                $('#description_edit').val(response.description);
+                setFieldError(document.getElementById('activity_edit'), '#err-activity-edit', '');
+                $('#btn-submit-edit').show();
+                $('#overlaylogedit').hide();
+            }, function (xhr, status, error) {
+                $('#erroredit_msg').html(ajaxErrorMessage(xhr, status, error));
+                $('#error_edit').show();
+                $('#edit_log').hide();
+                $('#btn-submit-edit').hide();
+                $('#overlaylogedit').hide();
+            });
+        }
+
+        function editlogSubmit() {
+            const activity = document.getElementById('activity_edit');
+            const valid = activity.value !== '';
+            setFieldError(activity, '#err-activity-edit', valid ? '' : 'Aktivitas belum di isi');
+            if (valid) {
+                document.getElementById('form-editlog').submit();
+            }
+        }
+
+        // ---------- Modal tulis log ----------
+
+        function logModal() {
+            $('#overlaylog').show();
+            $('#logModal').modal();
+            fetchLog(null, function (response) {
+                if (response.status !== 'success' && response.status !== 'online') {
+                    $('#error_msg').html(response.message);
+                    $('#error_log').show();
+                    $('#form_log').hide();
+                    $('#ss_log').hide();
+                    $('#btn-submit').hide();
+                    $('#overlaylog').hide();
+                    return;
+                }
+
+                absenonline = response.status === 'online';
+                const hasImage = Boolean(response.image);
+                preventabsenimages = absenonline && !hasImage;
+
+                $('#error_log').hide();
+                $('#form_log').show();
+                $('#activity_text').val(response.activity);
+                $('#description_text').val(response.description);
+                $('#ss_log').toggle(absenonline);
+
+                if (absenonline && hasImage) {
+                    $('#image_ss').attr('src', LOG_IMAGE_URL + response.user_id + '/' + response.image).show();
+                } else {
+                    $('#image_ss').hide();
+                }
+                if (absenonline && response.message) {
+                    $('#error_msg').html(response.message);
+                    $('#error_log').show();
+                }
+
+                $('#btn-submit').show();
+                $('#overlaylog').hide();
+            }, function (xhr, status, error) {
+                $('#error_msg').html(ajaxErrorMessage(xhr, status, error));
+                $('#error_log').show();
+                $('#form_log').hide();
+                $('#btn-submit').hide();
+                $('#overlaylog').hide();
+            });
+        }
+
+        function logSubmit() {
+            const activity = document.getElementById('activity_text');
+            const upload = document.getElementById('customFile');
+            const validImages = ['image/gif', 'image/jpeg', 'image/png'];
+
+            const activityValid = activity.value !== '';
+            setFieldError(activity, '#err-activity', activityValid ? '' : 'Aktivitas belum di isi');
+
+            let uploadValid = true;
+            if (absenonline) {
+                if (upload.files.length === 0) {
+                    // Screenshot wajib hanya jika belum pernah diunggah
+                    uploadValid = !preventabsenimages;
+                    setFieldError(upload, '#err-upload', uploadValid ? '' : 'File upload belum di pilih');
+                } else {
+                    uploadValid = validImages.includes(upload.files[0].type);
+                    setFieldError(upload, '#err-upload', uploadValid ? '' : 'File yang dipilih bukan image');
+                }
+            }
+
+            if (activityValid && uploadValid) {
+                document.getElementById('form-log').submit();
+            }
+        }
+
+        // ---------- Filter periode & cetak ----------
+
+        function reloadTable(range) {
+            $('#tabel-absensi').DataTable().ajax.url(ATTENDANCE_DATA_URL + range).load();
+        }
+
+        function setPrintRange(min, max, labelHtml) {
+            document.getElementById('min').value = min;
+            document.getElementById('max').value = max;
+            document.getElementById('filter-text').innerHTML = labelHtml;
+        }
+
+        function filter() {
+            const input = $('#filter').val();
+
+            if (input === 'all') {
+                document.getElementById('start_date').value = '';
+                document.getElementById('end_date').value = '';
+                setPrintRange('', '', 'Semua');
+                reloadTable('all');
+                return;
+            }
+            if (input === 'custom') {
+                return; // rentang kustom diproses lewat pilih_custom()
+            }
+
+            const labels = {
+                '7':         '7 Hari Terakhir',
+                '30':        '30 Hari Terakhir',
+                'thismonth': 'Bulan Ini',
+                'lastmonth': 'Bulan Kemarin'
+            };
+            const start = new Date();
+            const end = new Date();
+            if (input === '7') {
+                start.setDate(start.getDate() - 7);
+            } else if (input === '30') {
+                start.setDate(start.getDate() - 30);
+            } else if (input === 'thismonth') {
+                start.setDate(1);
+            } else if (input === 'lastmonth') {
+                start.setDate(1);
+                start.setMonth(start.getMonth() - 1);
+                end.setDate(0);
+            }
+
+            document.getElementById('start_date').valueAsDate = start;
+            document.getElementById('end_date').valueAsDate = end;
+            setPrintRange(fmtDate(start), fmtDate(end),
+                labels[input] + ' <br>( ' + fmtDate(start) + ' sd ' + fmtDate(end) + ' )');
+            reloadTable(fmtDate(start) + ':' + fmtDate(end));
+        }
+
+        function pilih_custom() {
+            document.getElementById('filter').value = 'custom';
+            const start = document.getElementById('start_date').value;
+            const end = document.getElementById('end_date').value;
+            setPrintRange(start, end,
+                'Kustom <br>( ' + (start || 'awal') + ' sd. ' + (end || 'sekarang') + ' )');
+            reloadTable((start || 'awal') + ':' + (end || 'sekarang'));
+        }
+
         function printModal() {
             $('#printModal').modal();
         }
 
         function print() {
-            format = $('#format_print').val()
-            if (format == 'xls') {
-                $('#print_form').attr('action', '<?= base_url()?>attendance/printxls');
-                document.getElementById('print_form').submit();
-            } else {
-                $('#print_form').attr('action', '<?= base_url()?>attendance/printpdf');
-                document.getElementById('print_form').submit();
-            }
+            const route = $('#format_print').val() === 'xls' ? 'attendance/printxls' : 'attendance/printpdf';
+            $('#print_form').attr('action', BASE_URL + route);
+            document.getElementById('print_form').submit();
         }
 
-        function editLog(id) {
-            $('#editModal').modal();
-            $.ajax({
-                url: "<?=base_url()?>/log/getdata/"+id,
-                type: "GET",
-                dataType: "json",
-                success: function(response) {
-                    activity = document.getElementById("activity_edit");
-                    $('#error_edit').hide();
-                    $('#edit_log').show();
-                    $('#date-edit').text(response.date);
-                    $('#status-edit').html(renderStatus(response.status_id));
-                    $('#activity_edit').val(response.activity);
-                    $('#id_edit').val(response.id);
-                    $('#description_edit').val(response.description);
-                    $('#btn-submit-edit').show();
-                    $('#overlaylogedit').hide();
-                    if(activity.classList.contains('is-invalid')) {
-                        activity.classList.remove('is-invalid');
-                    }
-                },
-                error: function(xhr, status, error) {
-                    if (status === 'timeout') {
-                        $('#erroredit_msg').html('TimeoutError: Permintaan melebihi waktu yang ditentukan.');;
-                    } else if (status === 'abort') {
-                        $('#erroredit_msg').html('AbortError: Permintaan dibatalkan.');
-                    } else if (status === 'parsererror') {
-                        $('#erroredit_msg').html('ParseError: Gagal mem-parsing data JSON.');
-                    } else if (xhr.status === 0) {
-                        $('#erroredit_msg').html('NetworkError: Tidak dapat terhubung ke server. Periksa koneksi internet.');
-                    } else if (xhr.status >= 400 && xhr.status < 600) {
-                        $('#erroredit_msg').html(`ServerError (Status ${xhr.status}): ${error}`);
-                    } else {
-                        $('#erroredit_msg').html(`UnexpectedError: ${status} - ${error}`);
-                    }
-                    $('#error_edit').show();
-                    $('#edit_log').hide();
-                    $('#btn-submit-edit').hide();
-                    $('#overlaylogedit').hide();
-                },
-                timeout: 5000
-            });
-        }
+        // ---------- Notifikasi flash ----------
 
-        function showLog(id) {
-            $('#overlayshowlog').show();
-            $('#showLogModal').modal();
-            $.ajax({
-                url: "<?=base_url()?>/log/getdata/"+id,
-                type: "GET",
-                dataType: "json",
-                success: function(response) {
-                    $('#error_log2').hide();
-                    $('#detail_log').show();
-                    $('#date-text').text(response.date);
-                    $('#status-text').html(renderStatus(response.status_id));
-                    $('#activity-text').text(response.activity || '-');
-                    $('#description-text').text(response.description || '-');
-                    if(response.image != '' && response.image != null) {
-                        $("#ss_image").attr("src","<?=base_url()?>log/image/"+response.user_id+"/"+response.image);
-                        $('#ss_wrap').show();
-                    } else {
-                        $('#ss_wrap').hide();
-                    }
-                    $('#btn-submit').show();
-                    $('#overlayshowlog').hide();
-                },
-                error: function(xhr, status, error) {
-                    if (status === 'timeout') {
-                        $('#error_msg2').html('TimeoutError: Permintaan melebihi waktu yang ditentukan.');;
-                    } else if (status === 'abort') {
-                        $('#error_msg2').html('AbortError: Permintaan dibatalkan.');
-                    } else if (status === 'parsererror') {
-                        $('#error_msg2').html('ParseError: Gagal mem-parsing data JSON.');
-                    } else if (xhr.status === 0) {
-                        $('#error_msg2').html('NetworkError: Tidak dapat terhubung ke server. Periksa koneksi internet.');
-                    } else if (xhr.status >= 400 && xhr.status < 600) {
-                        $('#error_msg2').html(`ServerError (Status ${xhr.status}): ${error}`);
-                    } else {
-                        $('#error_msg2').html(`UnexpectedError: ${status} - ${error}`);
-                    }
-                    // console.log(xhr.status)
-                    // $('#error_msg').html('Something wrong with server');
-                    $('#error_log2').show();
-                    $('#detail_log').hide();
-                    $('#btn-submit').hide();
-                    $('#overlayshowlog').hide();
-                },
-                timeout: 5000
-            });
-        }
-
-        var Toast = Swal.mixin({
-        toast: true,
-        position: 'top-end',
-        showConfirmButton: false,
-        timer: 3000
+        const Toast = Swal.mixin({
+            toast: true,
+            position: 'top-end',
+            showConfirmButton: false,
+            timer: 3000
         });
 
         <?php if(session()->getFlashdata('error')): ?>
@@ -497,239 +646,11 @@
         })
         <?php endif; ?>
 
-        function editlogSubmit()
-        {
-            activity = document.getElementById("activity_edit");
-            if (activity.value == "") {
-                if(!activity.classList.contains('is-invalid')) {
-                    activity.classList.add('is-invalid');
-                }
-                $('#err-activity-edit').html("Aktivitas belum di isi");
-            } else {
-                if(activity.classList.contains('is-invalid')) {
-                    activity.classList.remove('is-invalid');
-                }
-            }
-            if(activity.value != "") {
-                document.getElementById('form-editlog').submit();
-            }
-        }
+        // ---------- Inisialisasi ----------
 
-        function logSubmit()
-        {
-            activity = document.getElementById("activity_text");
-            upload = document.getElementById("customFile");
-            
-            validimage = ['image/gif', 'image/jpeg', 'image/png'];
+        $(function () {
+            bsCustomFileInput.init();
 
-            if (activity.value == "") {
-                if(!activity.classList.contains('is-invalid')) {
-                    activity.classList.add('is-invalid');
-                }
-                $('#err-activity').html("Aktivitas belum di isi");
-            } else {
-                if(activity.classList.contains('is-invalid')) {
-                    activity.classList.remove('is-invalid');
-                }
-            }
-
-            if (upload.files.length == 0 && absenonline == true && preventabsenimages == true) {
-                if(!upload.classList.contains('is-invalid')) {
-                    upload.classList.add('is-invalid');
-                }
-                $('#err-upload').html("File upload belum di pilih");
-            } else if(upload.files.length != 0 && absenonline == true && preventabsenimages == true) {
-                file = upload.files[0];
-                fileType = file['type'];
-                if (!validimage.includes(fileType)) {
-                    if(!upload.classList.contains('is-invalid')) {
-                        upload.classList.add('is-invalid');
-                    }
-                    $('#err-upload').html("File yang dipilih bukan image");
-                } else {
-                    if(upload.classList.contains('is-invalid')) {
-                        upload.classList.remove('is-invalid');
-                    }
-                }
-            }
-            if (absenonline == false) {
-                if(activity.value != "") {
-                    document.getElementById('form-log').submit();
-                }
-            } else {
-                if(activity.value != "" && upload.files.length != 0 && validimage.includes(fileType)) {
-                    document.getElementById('form-log').submit();
-                }
-            }
-        }
-
-
-        function logModal() {
-            $('#overlaylog').show();
-            $('#logModal').modal();
-            $.ajax({
-                url: "<?=base_url()?>/log/getdata",
-                type: "GET",
-                dataType: "json",
-                success: function(response) {
-                    if(response.status == 'success') {
-                        absenonline = false;
-                        $('#error_log').hide();
-                        $('#form_log').show();
-                        $('#ss_log').hide();
-                        $('#activity_text').val(response.activity);
-                        $('#description_text').html(response.description);
-                        $('#image_ss').show();
-                        $('#btn-submit').show();
-                        $('#overlaylog').hide();
-                    } else if(response.status == 'online') {
-                        absenonline = true;
-                        $('#error_log').hide();
-                        $('#form_log').show();
-                        $('#ss_log').show();
-                        $('#activity_text').val(response.activity);
-                        $('#description_text').html(response.description);
-                        if(response.image != "") {
-                            preventabsenimages = false;
-                            thereisimage = true;
-                            $("#image_ss").attr("src","<?=base_url()?>log/image/"+response.user_id+"/"+response.image);
-                            $('#image_ss').show();
-                        } else {
-                            preventabsenimages = true;
-                            thereisimage = false;
-                            $('#image_ss').hide();
-                        }
-                        if(response.message != "") {
-                            $('#error_msg').html(response.message);
-                            $('#error_log').show();
-                        } else {
-                            $('#error_log').hide();
-                        }
-                        $('#btn-submit').show();
-                        $('#overlaylog').hide();
-                    } else {
-                        $('#error_msg').html(response.message);
-                        $('#error_log').show();
-                        $('#ss_log').hide();
-                        $('#image_ss').hide();
-                        $('#form_log').hide();
-                        $('#btn-submit').hide();
-                        $('#overlaylog').hide();
-                    }
-                },
-                error: function(xhr, status, error) {
-                    if (status === 'timeout') {
-                        $('#error_msg').html('TimeoutError: Permintaan melebihi waktu yang ditentukan.');;
-                    } else if (status === 'abort') {
-                        $('#error_msg').html('AbortError: Permintaan dibatalkan.');
-                    } else if (status === 'parsererror') {
-                        $('#error_msg').html('ParseError: Gagal mem-parsing data JSON.');
-                    } else if (xhr.status === 0) {
-                        $('#error_msg').html('NetworkError: Tidak dapat terhubung ke server. Periksa koneksi internet.');
-                    } else if (xhr.status >= 400 && xhr.status < 600) {
-                        $('#error_msg').html(`ServerError (Status ${xhr.status}): ${error}`);
-                    } else {
-                        $('#error_msg').html(`UnexpectedError: ${status} - ${error}`);
-                    }
-                    // $('#error_msg').html('Something wrong with server');
-                    $('#error_log').show();
-                    $('#form_log').hide();
-                    $('#btn-submit').hide();
-                    $('#overlaylog').hide();
-                }
-            });
-        }
-
-        function filter()
-        {
-            input = $('#filter').val();
-            var tgl_awal = new Date();
-            var tgl_akhir = new Date();
-            if(input == 'all') {
-                document.getElementById('start_date').valueAsDate = null;
-                document.getElementById('end_date').valueAsDate = null;
-                document.getElementById('min').value = null;
-                document.getElementById('max').value = null;
-                document.getElementById('filter-text').innerHTML = 'Semua';
-                $('#tabel-absensi').DataTable().ajax.url("<?= base_url()?>attendance/data/<?=esc($user['id'])?>/all").load();
-            } else if(input == '7') {
-                tgl_awal.setDate(tgl_awal.getDate()-7);
-                document.getElementById('start_date').valueAsDate = tgl_awal;
-                document.getElementById('end_date').valueAsDate = tgl_akhir;
-                document.getElementById('min').value = tgl_awal.toISOString().split('T')[0];
-                document.getElementById('max').value = tgl_akhir.toISOString().split('T')[0];
-                document.getElementById('filter-text').innerHTML = '7 Hari Terakhir <br>( '+tgl_awal.toISOString().split('T')[0]+' sd '+tgl_akhir.toISOString().split('T')[0]+' )';
-                $('#tabel-absensi').DataTable().ajax.url("<?= base_url()?>attendance/data/<?=esc($user['id'])?>/"+tgl_awal.toISOString().split('T')[0]+':'+tgl_akhir.toISOString().split('T')[0]).load();
-            } else if(input == '30') {
-                tgl_awal.setDate(tgl_awal.getDate()-30);
-                document.getElementById('start_date').valueAsDate = tgl_awal;
-                document.getElementById('end_date').valueAsDate = tgl_akhir;
-                document.getElementById('min').value = tgl_awal.toISOString().split('T')[0];
-                document.getElementById('max').value = tgl_akhir.toISOString().split('T')[0];
-                document.getElementById('filter-text').innerHTML = '30 Hari Terakhir <br>( '+tgl_awal.toISOString().split('T')[0]+' sd '+tgl_akhir.toISOString().split('T')[0]+' )';
-                $('#tabel-absensi').DataTable().ajax.url("<?= base_url()?>attendance/data/<?=esc($user['id'])?>/"+tgl_awal.toISOString().split('T')[0]+':'+tgl_akhir.toISOString().split('T')[0]).load();
-            } else if(input == 'thismonth') {
-                tgl_awal.setDate(1);
-                document.getElementById('start_date').valueAsDate = tgl_awal;
-                document.getElementById('end_date').valueAsDate = tgl_akhir;
-                document.getElementById('min').value = tgl_awal.toISOString().split('T')[0];
-                document.getElementById('max').value = tgl_akhir.toISOString().split('T')[0];
-                document.getElementById('filter-text').innerHTML = 'Bulan Ini <br>( '+tgl_awal.toISOString().split('T')[0]+' sd '+tgl_akhir.toISOString().split('T')[0]+' )';
-                $('#tabel-absensi').DataTable().ajax.url("<?= base_url()?>attendance/data/<?=esc($user['id'])?>/"+tgl_awal.toISOString().split('T')[0]+':'+tgl_akhir.toISOString().split('T')[0]).load();
-            } else if(input == 'lastmonth') {
-                tgl_awal.setDate(1);
-                tgl_awal.setMonth(tgl_awal.getMonth()-1);
-                tgl_akhir.setDate(0);
-                document.getElementById('start_date').valueAsDate = tgl_awal;
-                document.getElementById('end_date').valueAsDate = tgl_akhir;
-                document.getElementById('min').value = tgl_awal.toISOString().split('T')[0];
-                document.getElementById('max').value = tgl_akhir.toISOString().split('T')[0];   
-                document.getElementById('filter-text').innerHTML = 'Bulan Kemarin <br>( '+tgl_awal.toISOString().split('T')[0]+' sd '+tgl_akhir.toISOString().split('T')[0]+' )';
-                $('#tabel-absensi').DataTable().ajax.url("<?= base_url()?>attendance/data/<?=esc($user['id'])?>/"+tgl_awal.toISOString().split('T')[0]+':'+tgl_akhir.toISOString().split('T')[0]).load();
-            }
-        }
-
-        function pilih_custom() {
-            document.getElementById('filter').value = 'custom';
-            start_date = document.getElementById('start_date').value;
-            end_date = document.getElementById('end_date').value;
-            document.getElementById('min').value = start_date;
-            document.getElementById('max').value = end_date;
-            if (start_date=='') {
-                start_date = 'awal'
-            }if (end_date=='') {
-                end_date = 'sekarang'
-            }
-            document.getElementById('filter-text').innerHTML = 'Kustom <br>( '+start_date+' sd. '+end_date+' )';
-            $('#tabel-absensi').DataTable().ajax.url("<?= base_url()?>attendance/data/<?=esc($user['id'])?>/"+start_date+':'+end_date).load();
-        }
-
-        function renderStatus(data) {
-            if (data === 'Hadir') {
-                return '<span class="badge badge-success"><i class="fas fa-check-circle mr-1"></i>Hadir</span>';
-            } else if (data === 'Hadir (Online)') {
-                return '<span class="badge bg-teal"><i class="fas fa-laptop mr-1"></i>Hadir (Online)</span>';
-            } else if (data === 'Ijin') {
-                return '<span class="badge badge-info"><i class="fas fa-info-circle mr-1"></i>Ijin</span>';
-            }
-            return '<span class="badge badge-secondary">' + data + '</span>';
-        }
-
-        function renderKeterangan(data) {
-            if (!data || data === '-') {
-                return '<span class="text-muted">-</span>';
-            }
-            var map = {
-                'Terlambat': 'bg-warning',
-                'Pulang Cepat': 'bg-orange',
-                'Lembur': 'bg-purple'
-            };
-            return data.split(', ').map(function(item) {
-                return '<span class="badge ' + (map[item] || 'badge-secondary') + ' mr-1">' + item + '</span>';
-            }).join('');
-        }
-
-        $(document).ready(function() {
             $('#tabel-absensi').DataTable({
                 processing: true,
                 order: [[0, 'desc']],
@@ -744,7 +665,7 @@
                     paginate: { previous: "&laquo;", next: "&raquo;" }
                 },
                 ajax: {
-                    url: '<?= base_url()?>attendance/data/<?=esc($user['id'])?>/all',
+                    url: ATTENDANCE_DATA_URL + 'all',
                     dataSrc: ''
                 },
                 columns: [
@@ -754,8 +675,9 @@
                     {data:'waktu'},
                     {data:'id',
                        orderable: false,
-                       render: function (data, type, row, meta) {
-                            return '<a class="btn btn-sm btn-info text-white" onClick="showLog('+"'"+data+"'"+')"><i class="fas fa-eye"></i> Lihat</a> <a class="btn btn-sm btn-secondary" onClick="editLog('+"'"+data+"'"+')"><i class="fas fa-edit"></i> Edit</a>';
+                       render: function (data) {
+                            return '<a class="btn btn-sm btn-info text-white" onClick="showLog(\'' + data + '\')"><i class="fas fa-eye"></i> Lihat</a> ' +
+                                   '<a class="btn btn-sm btn-secondary" onClick="editLog(\'' + data + '\')"><i class="fas fa-edit"></i> Edit</a>';
                         }
                     },
                 ],

@@ -156,6 +156,14 @@ class Log extends BaseController
             ->where('id', $id)
             ->first();
 
+        if (!$existing) {
+            throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound();
+        }
+
+        if (session('user_role') == 'user' && $existing['user_id'] != session('user_id')) {
+            throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound();
+        }
+
         $output = [
             'id' => $existing['id'],
             'user_id' => $existing['user_id'],

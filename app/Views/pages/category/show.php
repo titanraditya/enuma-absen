@@ -95,23 +95,23 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                <?php foreach($jadwal as $key => $jadwal):?>
+                                <?php foreach($jadwal as $key => $row):?>
                                 <tr>
                                     <td><?=$key + 1?></td>
-                                    <td class="font-weight-bold"><?=esc($hariMap[$jadwal['day']] ?? $jadwal['day'])?></td>
+                                    <td class="font-weight-bold"><?=esc($hariMap[$row['day']] ?? $row['day'])?></td>
                                     <td>
-                                        <?php if($jadwal['no_limit'] == '1'): ?>
+                                        <?php if($row['no_limit'] == '1'): ?>
                                             <span class="text-muted">Tanpa Batas Waktu</span>
                                         <?php else: ?>
-                                            <i class="far fa-clock mr-1 text-muted"></i><?=date("H:i", strtotime($jadwal['start_time']))?> &ndash; <?=date("H:i", strtotime($jadwal['end_time']))?>
+                                            <i class="far fa-clock mr-1 text-muted"></i><?=date("H:i", strtotime($row['start_time']))?> &ndash; <?=date("H:i", strtotime($row['end_time']))?>
                                         <?php endif; ?>
-                                        <?php if($jadwal['online'] == '1'): ?>
+                                        <?php if($row['online'] == '1'): ?>
                                             <span class="badge bg-teal ml-1"><i class="fas fa-laptop mr-1"></i>Online</span>
                                         <?php endif; ?>
                                     </td>
                                     <td>
-                                        <button onclick="edit(<?=esc($jadwal['id'])?>)" class="btn btn-sm btn-secondary"><i class="fas fa-edit"></i></button>
-                                        <button onclick="deleteModal('<?=esc($jadwal['id'])?>');" class="btn btn-danger btn-sm"><i class="fas fa-trash"></i></button>
+                                        <button onclick="edit(<?=esc($row['id'])?>)" class="btn btn-sm btn-secondary"><i class="fas fa-edit"></i></button>
+                                        <button onclick="deleteModal('<?=esc($row['id'])?>');" class="btn btn-danger btn-sm"><i class="fas fa-trash"></i></button>
                                     </td>
                                 </tr>
                                 <?php endforeach; ?>
@@ -147,14 +147,14 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                <?php foreach($user as $key => $user):?>
-                                <?php [$statusClass, $statusIcon] = $statusBadges[$user['status']] ?? ['badge-secondary', 'fa-question-circle']; ?>
+                                <?php foreach($user as $key => $member):?>
+                                <?php [$statusClass, $statusIcon] = $statusBadges[$member['status']] ?? ['badge-secondary', 'fa-question-circle']; ?>
                                 <tr>
                                     <td><?=$key + 1?></td>
-                                    <td class="font-weight-bold"><?=esc($user['name'])?></td>
-                                    <td><span class="badge <?=$statusClass?>"><i class="fas <?=$statusIcon?> mr-1"></i><?=esc($user['status'])?></span></td>
+                                    <td class="font-weight-bold"><?=esc($member['name'])?></td>
+                                    <td><span class="badge <?=$statusClass?>"><i class="fas <?=$statusIcon?> mr-1"></i><?=esc($member['status'])?></span></td>
                                     <td>
-                                        <a href="<?=base_url()?>category/user/detail/<?=esc($user['id'])?>" class="btn btn-sm btn-info text-white"><i class="fas fa-eye"></i> Lihat</a>
+                                        <a href="<?=base_url()?>category/user/detail/<?=esc($member['id'])?>" class="btn btn-sm btn-info text-white"><i class="fas fa-eye"></i> Lihat</a>
                                     </td>
                                 </tr>
                                 <?php endforeach; ?>
@@ -380,149 +380,138 @@
     <script src="<?=base_url()?>assets/plugins/select2/js/select2.full.min.js"></script>
     <script src="<?=base_url()?>assets/plugins/sweetalert2/sweetalert2.min.js"></script>
     <script>
-        var hariIndo = {
-            'Monday': 'Senin',
-            'Tuesday': 'Selasa',
-            'Wednesday': 'Rabu',
-            'Thursday': 'Kamis',
-            'Friday': 'Jumat',
-            'Saturday': 'Sabtu',
-            'Sunday': 'Minggu'
-        };
+        const BASE_URL = '<?= base_url() ?>';
+        const HARI_INDO = <?= json_encode($hariMap) ?>;
+        const SELECTED_DAYS = <?= json_encode(array_column($jadwal, 'day')) ?>;
 
-        $('#pengawas').select2({
-            theme: 'bootstrap4',
-            dropdownParent: $('#addPengawasModal')
-        })
-        inputtanggal();
-        document.getElementById('starttime').addEventListener('change', function() {
-            let startTime = this.value;
-            let endTimeInput = document.getElementById('endtime');
-            endTimeInput.min = startTime;
-            if (endTimeInput.value < startTime) {
-                endTimeInput.value = startTime;
-            }
-        });
+        // ---------- Helper ----------
 
-        document.getElementById('endtime').addEventListener('blur', function() {
-            let startTime = document.getElementById('starttime').value;
-            let endTime = this.value;
-            if (endTime < startTime) {
-                this.value = startTime;
-            }
-        });
-
-        document.getElementById('starttime2').addEventListener('change', function() {
-            let startTime = this.value;
-            let endTimeInput = document.getElementById('endtime2');
-            endTimeInput.min = startTime;
-            if (endTimeInput.value < startTime) {
-                endTimeInput.value = startTime;
-            }
-        });
-
-        document.getElementById('endtime2').addEventListener('blur', function() {
-            let startTime = document.getElementById('starttime2').value;
-            let endTime = this.value;
-            if (endTime < startTime) {
-                this.value = startTime;
-            }
-        });
-
-        function timeform() {
-            if ($('#no_limit').is(':checked')) {
-                $("#starttime").prop('disabled', true);
-                $("#endtime").prop('disabled', true);
-                $("#starttime").val(null);
-                $("#endtime").val(null);
-            } else {
-                $("#starttime").prop('disabled', false);
-                $("#endtime").prop('disabled', false);
-            }
-        }
-
-        function timeform2() {
-            if ($('#no_limit2').is(':checked')) {
-                $("#starttime2").prop('disabled', true);
-                $("#endtime2").prop('disabled', true);
-                $("#starttime2").val(null);
-                $("#endtime2").val(null);
-            } else {
-                $("#starttime2").prop('disabled', false);
-                $("#endtime2").prop('disabled', false);
-            }
-        }
-
-        function deleteModalKat($id) {
-            $('#katdeleteModal').modal();
-            $('#id_delete_kat').val($id);
-        }
-
-        function addPengawas($id) {
-            $('#addPengawasModal').modal();
-        }
-
-        function deleteModal($id) {
-            $('#deleteModal').modal();
-            $('#id_delete').val($id);
-        }
-
-        function deletepengawasModal($id) {
-            $('#deletePengawasModal').modal();
-            $('#id_delete_peng').val($id);
-        }
-
-        function edit(id) {
-            fetch("<?=base_url()?>schedule/check/"+id) // Ganti dengan API-mu
-                .then(response => response.json())
-                .then(data => {
-                    // document.getElementById('day').value = data.day;
-                    document.getElementById('labelday').innerHTML = hariIndo[data.day] || data.day;
-                    document.getElementById('id_jadwal').value = data.id;
-                    if (data.no_limit == '1') {
-                        $('#no_limit2').prop('checked', true);
-                        $("#starttime2").prop('disabled', true);
-                        $("#endtime2").prop('disabled', true);
-                        $("#starttime2").val(null);
-                        $("#endtime2").val(null);
-                    } else {
-                        $('#no_limit2').prop('checked', false);
-                        $("#starttime2").prop('disabled', false);
-                        $("#endtime2").prop('disabled', false);
-                        $("#starttime2").val(data.start_time);
-                        $("#endtime2").val(data.end_time);
-                    }
-                    if (data.online == '1') {
-                        $('#online2').prop('checked', true);
-                    } else {
-                        $('#online2').prop('checked', false);
-    
-                    }
-                    
-                    $('#editJadwalModal').modal();
-                })
-                .catch(error => console.error("Error fetching data:", error));
-        }
-
-        function inputtanggal() {
-            let selectedDaysString = "<?php foreach($jadwal1 as $jadwal1) { echo $jadwal1['day'].","; } ?>";
-
-            let allDays = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
-
-            let selectedDays = selectedDaysString ? selectedDaysString.split(',') : [];
-
-            let availableDays = allDays.filter(day => !selectedDays.includes(day));
-
-            let daySelect = document.getElementById("daySelect");
-            availableDays.forEach(day => {
-                let option = document.createElement("option");
-                option.value = day;
-                option.textContent = hariIndo[day] || day;
-                daySelect.appendChild(option);
+        // Jaga agar waktu akhir tidak lebih awal dari waktu awal
+        function bindTimeRange(startId, endId) {
+            const start = document.getElementById(startId);
+            const end = document.getElementById(endId);
+            start.addEventListener('change', function () {
+                end.min = this.value;
+                if (end.value < this.value) {
+                    end.value = this.value;
+                }
+            });
+            end.addEventListener('blur', function () {
+                if (this.value < start.value) {
+                    this.value = start.value;
+                }
             });
         }
 
-        $(document).ready(function() {
+        function toggleTimeInputs(startId, endId, disabled) {
+            const inputs = $('#' + startId + ', #' + endId);
+            inputs.prop('disabled', disabled);
+            if (disabled) {
+                inputs.val(null);
+            }
+        }
+
+        function confirmDelete(modalSel, inputSel, id) {
+            $(inputSel).val(id);
+            $(modalSel).modal();
+        }
+
+        // ---------- Aksi modal ----------
+
+        function showAdd() {
+            $('#addJadwalModal').modal();
+        }
+
+        function addPengawas() {
+            $('#addPengawasModal').modal();
+        }
+
+        function deleteModalKat(id) {
+            confirmDelete('#katdeleteModal', '#id_delete_kat', id);
+        }
+
+        function deleteModal(id) {
+            confirmDelete('#deleteModal', '#id_delete', id);
+        }
+
+        function deletepengawasModal(id) {
+            confirmDelete('#deletePengawasModal', '#id_delete_peng', id);
+        }
+
+        function timeform() {
+            toggleTimeInputs('starttime', 'endtime', $('#no_limit').is(':checked'));
+        }
+
+        function timeform2() {
+            toggleTimeInputs('starttime2', 'endtime2', $('#no_limit2').is(':checked'));
+        }
+
+        function edit(id) {
+            fetch(BASE_URL + 'schedule/check/' + id)
+                .then(response => response.json())
+                .then(data => {
+                    const noLimit = data.no_limit == '1';
+                    $('#labelday').html(HARI_INDO[data.day] || data.day);
+                    $('#id_jadwal').val(data.id);
+                    $('#no_limit2').prop('checked', noLimit);
+                    toggleTimeInputs('starttime2', 'endtime2', noLimit);
+                    if (!noLimit) {
+                        $('#starttime2').val(data.start_time);
+                        $('#endtime2').val(data.end_time);
+                    }
+                    $('#online2').prop('checked', data.online == '1');
+                    $('#editJadwalModal').modal();
+                })
+                .catch(error => console.error('Error fetching data:', error));
+        }
+
+        // Isi pilihan hari dengan hari yang belum punya jadwal
+        function fillDaySelect() {
+            const daySelect = document.getElementById('daySelect');
+            Object.keys(HARI_INDO)
+                .filter(day => !SELECTED_DAYS.includes(day))
+                .forEach(day => {
+                    const option = document.createElement('option');
+                    option.value = day;
+                    option.textContent = HARI_INDO[day];
+                    daySelect.appendChild(option);
+                });
+        }
+
+        // ---------- Notifikasi flash ----------
+
+        const Toast = Swal.mixin({
+            toast: true,
+            position: 'top-end',
+            showConfirmButton: false,
+            timer: 3000
+        });
+
+        <?php if(session()->getFlashdata('error')): ?>
+        Toast.fire({
+            icon: 'error',
+            title: '<?=esc(session()->getFlashdata('error'))?>'
+        })
+        <?php endif; ?>
+
+        <?php if(session()->getFlashdata('success')): ?>
+        Toast.fire({
+            icon: 'success',
+            title: '<?=esc(session()->getFlashdata('success'))?>'
+        })
+        <?php endif; ?>
+
+        // ---------- Inisialisasi ----------
+
+        $(function () {
+            $('#pengawas').select2({
+                theme: 'bootstrap4',
+                dropdownParent: $('#addPengawasModal')
+            });
+            fillDaySelect();
+            bindTimeRange('starttime', 'endtime');
+            bindTimeRange('starttime2', 'endtime2');
+
             $('#tabel-user').DataTable({
                 columnDefs: [
                     { orderable: false, targets: [3] }
@@ -548,30 +537,5 @@
                 }
             });
         });
-
-        function showAdd() {
-            $('#addJadwalModal').modal();
-        }
-
-        var Toast = Swal.mixin({
-        toast: true,
-        position: 'top-end',
-        showConfirmButton: false,
-        timer: 3000
-        });
-
-        <?php if(session()->getFlashdata('error')): ?>
-        Toast.fire({
-            icon: 'error',
-            title: '<?=esc(session()->getFlashdata('error'))?>'
-        })
-        <?php endif; ?>
-
-        <?php if(session()->getFlashdata('success')): ?>
-        Toast.fire({
-            icon: 'success',
-            title: '<?=esc(session()->getFlashdata('success'))?>'
-        })
-        <?php endif; ?>
     </script>
 <?php $this->endSection(); ?>

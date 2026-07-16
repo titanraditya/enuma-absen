@@ -117,7 +117,6 @@ class Category extends BaseController
         $data['category'] = $category;
         $data['user'] = $user;
         $data['jadwal'] = $jadwal;
-        $data['jadwal1'] = $jadwal;
 
         return view('pages/category/show',$data);
     }
