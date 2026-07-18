@@ -126,6 +126,9 @@
                 <div class="card-header">
                     <h4 class="card-title"><i class="fas fa-users mr-2 text-muted"></i>Daftar Anggota</h4>
                     <a href="<?=base_url()?>category/logs/<?=esc($category['id'])?>" class="btn btn-sm btn-primary float-right"><i class="fas fa-clipboard-list"></i> Log Anggota</a>
+                    <?php if(session('user_role') == 'admin'): ?>
+                        <button onclick="importModal()" class="btn btn-sm btn-success float-right mr-2"><i class="fas fa-file-excel"></i> Impor</button>
+                    <?php endif; ?>
                 </div>
                 <div class="card-body">
                     <?php
@@ -135,7 +138,21 @@
                             'Ijin'           => ['badge-info', 'fa-info-circle'],
                             'Tidak Hadir'    => ['badge-danger', 'fa-times-circle'],
                         ];
+                        $importErrors = session()->getFlashdata('import_errors');
                     ?>
+                    <?php if($importErrors): ?>
+                        <div class="alert alert-danger">
+                            <b><i class="fas fa-exclamation-circle mr-1"></i> Impor dibatalkan, perbaiki data berikut lalu unggah ulang:</b>
+                            <ul class="mb-0 mt-2 pl-4">
+                                <?php foreach(array_slice($importErrors, 0, 15) as $importError): ?>
+                                    <li><?=esc($importError)?></li>
+                                <?php endforeach; ?>
+                                <?php if(count($importErrors) > 15): ?>
+                                    <li>... dan <?=count($importErrors) - 15?> kesalahan lainnya.</li>
+                                <?php endif; ?>
+                            </ul>
+                        </div>
+                    <?php endif; ?>
                     <div class="table-responsive">
                         <table id="tabel-user" class="table table-bordered table-hover">
                             <thead>
@@ -270,6 +287,41 @@
               <?php if($pengawas): ?>
                 <button type="submit" class="btn btn-primary"><i class="fas fa-check mr-1"></i> Tambah Pengawas</button>
               <?php endif; ?>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+  <div class="modal fade" id="importModal">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <form method="POST" action="<?=base_url()?>category/member/import" enctype="multipart/form-data">
+          <?=csrf_field();?>
+          <input type="hidden" name="category_id" value="<?=esc($category['id'])?>">
+          <div class="modal-header">
+            <h4 class="modal-title"><i class="fas fa-file-excel mr-2 text-muted"></i>Impor Anggota</h4>
+            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+              <span aria-hidden="true">&times;</span>
+            </button>
+          </div>
+          <div class="modal-body">
+            <p class="mb-2">Semua anggota pada file akan dimasukkan ke grup <b><?=esc($category['name'])?></b>.</p>
+            <ul class="pl-4 mb-3 text-muted" style="font-size: .9rem;">
+                <li>Baris pertama template adalah judul kolom, jangan dihapus.</li>
+                <li>Kolom <b>Nama</b> wajib diisi (3-100 karakter).</li>
+                <li><b>Username</b> dan <b>Password</b> (8-30 karakter, tanpa spasi) hanya diisi jika anggota perlu akun login.</li>
+                <li>Jika ada satu saja baris yang tidak valid, seluruh impor dibatalkan.</li>
+                <li>Maksimal 500 anggota per file.</li>
+            </ul>
+            <a href="<?=base_url()?>category/member/template" class="btn btn-sm btn-default mb-3"><i class="fas fa-download mr-1"></i> Unduh Template</a>
+            <div class="form-group mb-0">
+                <label>File Excel (.xlsx)</label>
+                <input type="file" name="file" class="form-control-file" accept=".xlsx" required>
+            </div>
+          </div>
+          <div class="modal-footer justify-content-end">
+              <button type="button" class="btn btn-default" data-dismiss="modal">Batal</button>
+              <button type="submit" class="btn btn-primary"><i class="fas fa-upload mr-1"></i> Impor</button>
           </div>
         </form>
       </div>
@@ -424,6 +476,10 @@
 
         function addPengawas() {
             $('#addPengawasModal').modal();
+        }
+
+        function importModal() {
+            $('#importModal').modal();
         }
 
         function deleteModalKat(id) {

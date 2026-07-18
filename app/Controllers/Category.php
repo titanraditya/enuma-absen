@@ -6,6 +6,9 @@ use App\Models\CategoryModel;
 use App\Models\UserModel;
 use App\Models\ScheduleModel;
 use App\Models\SubcategoryOverseerModel;
+use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
+use PhpOffice\PhpSpreadsheet\IOFactory;
 
 class Category extends BaseController
 {
@@ -361,11 +364,165 @@ class Category extends BaseController
         }
 
         $id = $this->request->getPost('id');
-        
+
         if($this->subcategoryOverseerModel->where('id',$id)->delete()) {
             return redirect()->back()->with('success', 'Pengawas berhasil dihapus.');
         } else {
             return redirect()->back()->with('error', 'Gagal Menghapus Pengawas');
         }
+    }
+
+    public function membertemplate()
+    {
+        if (session('user_role') != 'admin') {
+            throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound();
+        }
+
+        $spreadsheet = new Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+        $sheet->setTitle('Anggota');
+        $sheet->fromArray(['Nama', 'Username', 'Password'], null, 'A1');
+        $sheet->getStyle('A1:C1')->getFont()->setBold(true);
+        $sheet->getColumnDimension('A')->setWidth(32);
+        $sheet->getColumnDimension('B')->setWidth(24);
+        $sheet->getColumnDimension('C')->setWidth(24);
+
+        header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        header('Content-Disposition: attachment;filename="Template Impor Anggota.xlsx"');
+        header('Cache-Control: max-age=0');
+
+        $writer = new Xlsx($spreadsheet);
+        $writer->save('php://output');
+    }
+
+    public function memberimport()
+    {
+        if (session('user_role') != 'admin') {
+            throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound();
+        }
+
+        $categoryId = $this->request->getPost('category_id');
+        $category = $this->categoryModel->find($categoryId);
+        if (!$category || $categoryId == '1') {
+            return redirect()->back()->with('error', 'Grup tidak ditemukan.');
+        }
+
+        $file = $this->request->getFile('file');
+        if (!$file || !$file->isValid()) {
+            return redirect()->back()->with('error', 'File belum dipilih atau gagal diunggah.');
+        }
+        if (strtolower($file->getClientExtension()) !== 'xlsx') {
+            return redirect()->back()->with('error', 'Format file harus .xlsx. Gunakan template yang disediakan.');
+        }
+
+        try {
+            $reader = IOFactory::createReader('Xlsx');
+            $reader->setReadDataOnly(true);
+            $rows = $reader->load($file->getTempName())->getActiveSheet()->toArray();
+        } catch (\Throwable $e) {
+            return redirect()->back()->with('error', 'File tidak dapat dibaca. Pastikan file .xlsx valid.');
+        }
+
+        array_shift($rows); // baris 1 = judul kolom template
+
+        $members = [];
+        $errors = [];
+        $usernameLines = [];
+
+        foreach ($rows as $i => $row) {
+            $line = $i + 2;
+            $name = trim((string) ($row[0] ?? ''));
+            $username = trim((string) ($row[1] ?? ''));
+            $password = trim((string) ($row[2] ?? ''));
+
+            if ($name === '' && $username === '' && $password === '') {
+                continue;
+            }
+
+            if ($name === '') {
+                $errors[] = "Baris {$line}: Nama harus diisi.";
+            } elseif (mb_strlen($name) < 3 || mb_strlen($name) > 100) {
+                $errors[] = "Baris {$line}: Nama harus 3-100 karakter.";
+            }
+
+            if ($username === '' && $password !== '') {
+                $errors[] = "Baris {$line}: Password diisi tetapi Username kosong.";
+            }
+
+            if ($username !== '') {
+                if ($password === '') {
+                    $errors[] = "Baris {$line}: Username diisi tetapi Password kosong.";
+                }
+                if (strlen($username) < 8 || strlen($username) > 30) {
+                    $errors[] = "Baris {$line}: Username harus 8-30 karakter.";
+                }
+                if (strpos($username, ' ') !== false) {
+                    $errors[] = "Baris {$line}: Username tidak boleh mengandung spasi.";
+                }
+                if ($password !== '' && (strlen($password) < 8 || strlen($password) > 30)) {
+                    $errors[] = "Baris {$line}: Password harus 8-30 karakter.";
+                }
+                if (strpos($password, ' ') !== false) {
+                    $errors[] = "Baris {$line}: Password tidak boleh mengandung spasi.";
+                }
+                if (isset($usernameLines[$username])) {
+                    $errors[] = "Baris {$line}: Username '{$username}' duplikat dengan baris {$usernameLines[$username]}.";
+                } else {
+                    $usernameLines[$username] = $line;
+                }
+            }
+
+            $members[] = [
+                'name' => $name,
+                'username' => $username,
+                'password' => $password,
+            ];
+        }
+
+        if (!$members) {
+            return redirect()->back()->with('error', 'File tidak berisi data anggota.');
+        }
+        if (count($members) > 500) {
+            return redirect()->back()->with('error', 'Maksimal 500 anggota per impor.');
+        }
+
+        if ($usernameLines) {
+            $taken = $this->userModel->whereIn('username', array_keys($usernameLines))->findColumn('username') ?? [];
+            foreach ($taken as $username) {
+                $errors[] = "Baris {$usernameLines[$username]}: Username '{$username}' sudah digunakan.";
+            }
+        }
+
+        if ($errors) {
+            return redirect()->back()
+                ->with('error', 'Impor dibatalkan, tidak ada data yang disimpan.')
+                ->with('import_errors', $errors);
+        }
+
+        helper('uuidv4');
+        $records = [];
+        foreach ($members as $member) {
+            $canLogin = $member['username'] !== '';
+            $records[] = [
+                'id' => uuidv4(),
+                'name' => $member['name'],
+                'category_id' => $categoryId,
+                'active' => '1',
+                'can_login' => $canLogin ? '1' : '0',
+                'username' => $canLogin ? $member['username'] : null,
+                'password' => $canLogin ? password_hash($member['password'], PASSWORD_DEFAULT) : null,
+            ];
+        }
+
+        $db = \Config\Database::connect();
+        $db->transStart();
+        $this->userModel->insertBatch($records);
+        $db->transComplete();
+
+        if ($db->transStatus() === false) {
+            return redirect()->back()->with('error', 'Gagal menyimpan data. Impor dibatalkan.');
+        }
+
+        return redirect()->back()->with('success', count($records).' anggota berhasil diimpor.');
     }
 }

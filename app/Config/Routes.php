@@ -31,6 +31,8 @@ $routes->group('category', ['filter' => 'admin-pengawas'], function($routes) {
     $routes->post('add', 'Category::addpost');
     $routes->post('addpengawas', 'Category::addpengawas');
     $routes->post('deletepengawas', 'Category::deletepengawas');
+    $routes->get('member/template', 'Category::membertemplate');
+    $routes->post('member/import', 'Category::memberimport');
     $routes->get('detail/(:any)', 'Category::detail/$1');
     $routes->get('logs/(:segment)', 'Category::logs/$1');
     $routes->get('user/detail/(:any)', 'User::detail/$1');
