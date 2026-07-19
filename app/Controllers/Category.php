@@ -387,12 +387,15 @@ class Category extends BaseController
         $sheet->getColumnDimension('B')->setWidth(24);
         $sheet->getColumnDimension('C')->setWidth(24);
 
-        header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-        header('Content-Disposition: attachment;filename="Template Impor Anggota.xlsx"');
-        header('Cache-Control: max-age=0');
-
         $writer = new Xlsx($spreadsheet);
+        ob_start();
         $writer->save('php://output');
+        $content = ob_get_clean();
+
+        // Lewat DownloadResponse agar CI4 tidak mencatat URL ini sebagai previous_url
+        return $this->response
+            ->download('Template Impor Anggota.xlsx', $content)
+            ->setContentType('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
     }
 
     public function memberimport()
@@ -404,15 +407,17 @@ class Category extends BaseController
         $categoryId = $this->request->getPost('category_id');
         $category = $this->categoryModel->find($categoryId);
         if (!$category || $categoryId == '1') {
-            return redirect()->back()->with('error', 'Grup tidak ditemukan.');
+            return redirect()->to('category')->with('error', 'Grup tidak ditemukan.');
         }
+
+        $detail = redirect()->to('category/detail/'.$categoryId);
 
         $file = $this->request->getFile('file');
         if (!$file || !$file->isValid()) {
-            return redirect()->back()->with('error', 'File belum dipilih atau gagal diunggah.');
+            return $detail->with('error', 'File belum dipilih atau gagal diunggah.');
         }
         if (strtolower($file->getClientExtension()) !== 'xlsx') {
-            return redirect()->back()->with('error', 'Format file harus .xlsx. Gunakan template yang disediakan.');
+            return $detail->with('error', 'Format file harus .xlsx. Gunakan template yang disediakan.');
         }
 
         try {
@@ -420,7 +425,7 @@ class Category extends BaseController
             $reader->setReadDataOnly(true);
             $rows = $reader->load($file->getTempName())->getActiveSheet()->toArray();
         } catch (\Throwable $e) {
-            return redirect()->back()->with('error', 'File tidak dapat dibaca. Pastikan file .xlsx valid.');
+            return $detail->with('error', 'File tidak dapat dibaca. Pastikan file .xlsx valid.');
         }
 
         array_shift($rows); // baris 1 = judul kolom template
@@ -480,10 +485,10 @@ class Category extends BaseController
         }
 
         if (!$members) {
-            return redirect()->back()->with('error', 'File tidak berisi data anggota.');
+            return $detail->with('error', 'File tidak berisi data anggota.');
         }
         if (count($members) > 500) {
-            return redirect()->back()->with('error', 'Maksimal 500 anggota per impor.');
+            return $detail->with('error', 'Maksimal 500 anggota per impor.');
         }
 
         if ($usernameLines) {
@@ -494,7 +499,7 @@ class Category extends BaseController
         }
 
         if ($errors) {
-            return redirect()->back()
+            return $detail
                 ->with('error', 'Impor dibatalkan, tidak ada data yang disimpan.')
                 ->with('import_errors', $errors);
         }
@@ -520,9 +525,9 @@ class Category extends BaseController
         $db->transComplete();
 
         if ($db->transStatus() === false) {
-            return redirect()->back()->with('error', 'Gagal menyimpan data. Impor dibatalkan.');
+            return $detail->with('error', 'Gagal menyimpan data. Impor dibatalkan.');
         }
 
-        return redirect()->back()->with('success', count($records).' anggota berhasil diimpor.');
+        return $detail->with('success', count($records).' anggota berhasil diimpor.');
     }
 }
