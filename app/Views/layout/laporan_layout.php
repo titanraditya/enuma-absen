@@ -138,7 +138,7 @@
                                     if($attendance['no_limit'] == '1') {
                                         echo date('H:i:s',strtotime($attendance['checkin']));
                                     } else {
-                                        if($attendance['checkout'] == null && date('Y-m-d',strtotime($attendance['created_at'])) == date("Y-m-d")) {
+                                        if($attendance['checkout'] == null && date('Y-m-d',strtotime($attendance['checkin'])) == date("Y-m-d")) {
                                             echo date('H:i:s',strtotime($attendance['checkin']))." - Belum Pulang";
                                         } else if($attendance['checkout'] == null) {
                                             echo date('H:i:s',strtotime($attendance['checkin']))." - Tidak Absen";
@@ -160,7 +160,7 @@
                                     if($attendance['no_limit'] == '1') {
                                         echo date('H:i:s',strtotime($attendance['checkin']));
                                     } else {
-                                        if($attendance['checkout'] == null && date('Y-m-d',strtotime($attendance['created_at'])) == date("Y-m-d")) {
+                                        if($attendance['checkout'] == null && date('Y-m-d',strtotime($attendance['checkin'])) == date("Y-m-d")) {
                                             echo date('H:i:s',strtotime($attendance['checkin']))." - Belum Pulang";
                                         } else if($attendance['checkout'] == null) {
                                             echo date('H:i:s',strtotime($attendance['checkin']))." - Tidak Absen";

@@ -374,7 +374,7 @@ class Attendance extends BaseController
 
         $existingAttendance = $this->attendanceModel
             ->where('user_id', $id)
-            ->like('created_at', $currentDate, 'after')
+            ->like('checkin', $currentDate, 'after')
             ->first();
 
         if ($existingAttendance) {
@@ -436,7 +436,7 @@ class Attendance extends BaseController
 
         $existingAttendance = $this->attendanceModel
             ->where('user_id', $id)
-            ->like('created_at', $currentDate, 'after')
+            ->like('checkin', $currentDate, 'after')
             ->first();
 
         if ($existingAttendance) {
@@ -510,7 +510,7 @@ class Attendance extends BaseController
                 if($attendance['no_limit'] == '1') {
                     $data['waktu'] = date('H:i:s',strtotime($attendance['checkin']));
                 } else {
-                    if($attendance['checkout'] == null && date('Y-m-d',strtotime($attendance['created_at'])) == date("Y-m-d")) {
+                    if($attendance['checkout'] == null && date('Y-m-d',strtotime($attendance['checkin'])) == date("Y-m-d")) {
                         $data['waktu'] = date('H:i:s',strtotime($attendance['checkin']))." - Belum Pulang";
                     } else if($attendance['checkout'] == null) {
                         $data['waktu'] = date('H:i:s',strtotime($attendance['checkin']))." - Tidak Absen";

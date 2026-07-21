@@ -128,8 +128,8 @@ class Api extends BaseController
 
             $todayAttendance = $this->attendanceModel
                 ->where('user_id', $userId)
-                ->where('created_at >=', $currentDate)
-                ->where('created_at <=', $tomorrowDate)
+                ->where('checkin >=', $currentDate)
+                ->where('checkin <=', $tomorrowDate)
                 ->first();
 
             //jika sudah absen

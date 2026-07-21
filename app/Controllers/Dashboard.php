@@ -58,7 +58,7 @@ class Dashboard extends BaseController
                 ->select("user_id,
                         COUNT(CASE WHEN status = 'Hadir' THEN 1 END) AS hadir_count, 
                         COUNT(CASE WHEN status = 'Ijin' THEN 1 END) AS ijin_count, 
-                        COALESCE(MAX(CASE WHEN DATE(created_at) = CURDATE() THEN status END),'Tidak Hadir') AS status_today")
+                        COALESCE(MAX(CASE WHEN DATE(checkin) = CURDATE() THEN status END),'Tidak Hadir') AS status_today")
                 ->where('user_id', $id)
                 ->groupBy('user_id')
                 ->orderBy('user_id')

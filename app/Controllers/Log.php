@@ -74,7 +74,7 @@ class Log extends BaseController
         $existingAttendance = $this->attendanceModel
             ->select('id, activity, description, status, user_id, image')
             ->where('user_id', $id)
-            ->like('created_at', $currentDate, 'after')
+            ->like('checkin', $currentDate, 'after')
             ->first();
 
         if(!$existingAttendance) {
@@ -185,7 +185,7 @@ class Log extends BaseController
         $todayAttendance = $this->attendanceModel
             ->select('id, activity, description, image')
             ->where('user_id', $id)
-            ->like('created_at', $currentDate, 'after')
+            ->like('checkin', $currentDate, 'after')
             ->first();
 
         $data = [
