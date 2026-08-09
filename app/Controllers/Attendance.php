@@ -32,6 +32,10 @@ class Attendance extends BaseController
 
     public function addlogs()
     {
+        if (session('user_role') != 'admin') {
+            throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound();
+        }
+
         $id = $this->request->getPost('id');
         $date = $this->request->getPost('date');
         $time = $this->request->getPost('time');

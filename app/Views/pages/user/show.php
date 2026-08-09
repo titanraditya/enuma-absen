@@ -103,7 +103,9 @@
             <div class="card">
                 <div class="card-header bg-lightblue">
                     <h4 class="card-title">Kehadiran dan Laporan Anggota</h4>
+                    <?php if (session('user_role') == 'admin'): ?>
                     <button onclick="addLog()" class="btn btn-sm btn-outline-primary bg-white float-right"><i class="fas fa-plus"></i> Tambah</button>
+                    <?php endif; ?>
                 </div>
                 <div class="card-body">
                     <div class="row filter-bar mb-3">
